@@ -1,0 +1,31 @@
+{% extends "layouts/base.html" %}
+{% block content %}
+<main id="login-page">
+    <div class="container">
+        <div class="row d-flex align-items-center align-content-center">
+            <div class="col-12 col-md-5 mx-md-auto">
+                <div class="login-box">
+                    <h1>{{ t('page.login.h1') }}</h1>
+
+                    {% include 'components/shared/messages/flash-message.html' with context %}
+
+                    <form id="login-form" class="mt-4" method="post" action="/login" novalidate>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">{{ t('form.login.label.cn') }}</label>
+                            <input id="username" name="username" placeholder="{{t('form.login.label.cn')}}"
+                                class="form-control" autocomplete="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ t('form.login.label.password') }}</label>
+                            <input id="password" name="password" type="password"
+                                placeholder="{{t('form.login.label.password')}}" class="form-control"
+                                autocomplete="current-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">{{ t('form.login.button.label') }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

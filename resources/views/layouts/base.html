@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{config.APP_NAME}}</title>
+    <link rel="stylesheet" href="../static/styles/bootstrap.css">
+    <link rel="icon" href="{{url_for('static', filename='favicon.ico')}}" sizes="any">
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/main.css')}}">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <img title="ZHAW" src="{{url_for('static', filename='images/zhaw_rgb_logo_weiss_negativ.png')}}"
+                        width="100" />
+                    <a id="app-title" href="/" class="h1">{{config.APP_NAME}}</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {% block content %}
+    {% endblock %}
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-lg-6 text-start">
+                    <div>{{t("organisation.copyright.text")}}</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script type="module" src="{{url_for('static', filename='javascripts/main.js')}}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

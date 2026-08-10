@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Application configuration
+app/config/settings.py
+
+# Kubernetes secrets
+k8s/secret.yaml
+
+# Generated / uploaded files
+resources/static/files/
+secure-uploads/*
+
+# Logs
+log/
+*.log
+
+# Backups
+*.bak
+*.bak.*
+
+# Keep
+!.gitkeep

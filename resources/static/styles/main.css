@@ -1,0 +1,153 @@
+/*
+ *
+ * (c) ZHAW HSB <apps.hsb@zhaw.ch>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+/*
+ * 0.   Colors
+ * 1.   General
+ * 2.   Header
+ * 3.   Navigation
+ * 4.   Content
+ * 5.   Footer
+ * 6.   Components
+ * 7.   Utilities
+ * 8.   Additions
+ */
+
+/*
+ * 0.   Colors
+ */
+
+:root {
+    --white: #fff;
+    --zhaw-blue: #0064A6;
+}
+
+/*
+ * 1.   General
+ */
+
+html,
+body {
+    min-height: 100vh;
+}
+
+#app-title {
+    color: var(--white);
+    display: inline-block;
+    margin-bottom: 0;
+    padding: 0 0 0 15px;
+    vertical-align: middle;
+    text-decoration: none;
+    font-weight: normal;
+}
+
+/*
+ * 2.   Header
+ */
+
+header {
+    background-color: var(--zhaw-blue);
+    padding: 10px 0;
+}
+
+header img {
+    display: inline-block;
+    width: 58px;
+}
+
+/*
+ * 3.   Navigation
+ */
+
+#main-navigation {
+    display: flex;
+    align-items: center;
+    align-content: center;
+    justify-content: end;
+    height: 100%;
+}
+
+#main-navigation ul {
+    margin-bottom: 0;
+}
+
+#main-navigation li {
+    display: inline-block;
+}
+
+#main-navigation li.active a {
+    border-bottom: 1px solid var(--white);
+}
+
+#main-navigation li:hover a {
+    border-bottom: 1px solid var(--white);
+}
+
+#main-navigation li+li {
+    margin-left: 20px;
+}
+
+#main-navigation a {
+    color: var(--white);
+    text-decoration: none;
+}
+
+/*
+ * 4.   Content
+ */
+
+main {
+    margin-top: 50px;
+    min-height: calc(100vh - (50px + 133px));
+}
+
+/*
+ * 5.   Footer
+ */
+
+footer {
+    background-color: var(--zhaw-blue);
+    padding: 15px;
+}
+
+footer div {
+    color: var(--white);
+}
+
+footer div span {
+    text-decoration: underline;
+}
+
+footer ul li,
+footer ul li a {
+    color: var(--white);
+}
+
+footer ul li a {
+    text-decoration: none;
+}
+
+footer ul li a:hover,
+footer ul li a:focus {
+    text-decoration: underline;
+    color: var(--white);
+}
+
+/*
+ * 6.   Components
+ */
+
+
+/*
+ * 7.   Utilities
+ */
+
+
+/*
+ * 8.   Additions
+ */
