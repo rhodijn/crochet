@@ -14,6 +14,7 @@
  * 4.   Content
  * 5.   Footer
  * 6.   Components
+ * 6.1  Buttons
  * 7.   Utilities
  * 8.   Additions
  */
@@ -143,6 +144,9 @@ footer ul li a:focus {
  * 6.   Components
  */
 
+/*
+ * 6.1  Buttons
+ */
 
 .btn.btn-primary {
     background-color: var(--zhaw-blue);
