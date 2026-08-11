@@ -1,0 +1,17 @@
+{% if flash.has("success") %}
+<div class="alert alert-success mt-4 mb-4 alert-auto-hide" role="alert">
+    {{ flash.get("success") }}
+</div>
+{% endif %}
+
+{% if flash.has("warning") %}
+<div class="alert alert-warning mt-4 mb-4 alert-auto-hide" role="alert">
+    {{ flash.get("warning") }}
+</div>
+{% endif %}
+
+{% if flash.has("error") %}
+<div class="alert alert-danger mt-4 mb-4 alert-auto-hide" role="alert">
+    {{ flash.get("error") }}
+</div>
+{% endif %}

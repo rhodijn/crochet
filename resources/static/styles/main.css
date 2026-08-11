@@ -25,6 +25,7 @@
 :root {
     --white: #fff;
     --zhaw-blue: #0064A6;
+    --zhaw-light-blue: #3EA4C4;
 }
 
 /*
@@ -141,6 +142,22 @@ footer ul li a:focus {
 /*
  * 6.   Components
  */
+
+
+.btn.btn-primary {
+    background-color: var(--zhaw-blue);
+    border-color: var(--zhaw-blue);
+    border-radius: 0;
+}
+
+.btn.btn-primary:hover {
+    background-color: var(--zhaw-light-blue);
+    border-color: var(--zhaw-light-blue);
+}
+
+.btn.btn-secondary {
+    background-color: var(--zhaw-light-blue);
+}
 
 
 /*

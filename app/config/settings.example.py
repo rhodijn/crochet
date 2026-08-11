@@ -6,6 +6,7 @@ class Settings:
     APP_NAME: str = "<APP_NAME>"
     APP_HOST: str = os.getenv("APP_HOST", "<PRODUCTION_DOMAIN_URL>")  # required
     APP_DEBUG: str = os.getenv("APP_DEBUG", False)  # required default
+    APP_PORT: int = 80 # required
     APP_LOG_LEVEL: str = logging.INFO
     APP_PUBLIC_DIR: str = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "public"
@@ -33,3 +34,4 @@ class Settings:
     TRANSLATION_DEFAULT_LANG: str = os.getenv(
         "TRANSLATION_DEFAULT_LANG", "de"
     )  # required
+    FLASK_SECRET_KEY: str = "" # required
