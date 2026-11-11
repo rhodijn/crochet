@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from flask import has_request_context, session
 
 from app.config.settings import Settings

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pymysql
 from pymysql.cursors import DictCursor
 from threading import Lock

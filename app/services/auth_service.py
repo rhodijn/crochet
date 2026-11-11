@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from ldap3 import Server, Connection, ALL
 from ldap3.core.exceptions import LDAPException
 from app.config.settings import Settings
