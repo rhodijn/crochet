@@ -5,7 +5,6 @@ import logging
 from flask import Flask
 
 from app.config.settings import Settings
-from app.services.auth_service import AuthService
 from app.core.translation.i18n import t, lang
 from app.controllers.app_controller import app_controller
 from app.services.flash_service import FlashService
@@ -26,7 +25,7 @@ class Setup:
     @staticmethod
     def set_jinja_config(app: Flask) -> None:
         app.jinja_env.globals.update(
-            config=config, auth=AuthService(), t=t, lang=lang, flash=FlashService()
+            config=config, t=t, lang=lang, flash=FlashService()
         )
 
     @staticmethod
