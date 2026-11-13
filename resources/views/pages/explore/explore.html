@@ -1,0 +1,66 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <h1 class="display-4 fw-bold mb-4" style="letter-spacing: -1px;">Pick an object from our collection.<br>And Crochet it.</h1>
+            <p class="text-muted fs-5">Explore a digital collection of objects sourced from open cultural data. Search a collection, choose a piece, and get a custom crochet pattern generated for it.</p>
+        </div>
+    </div>
+
+    <div class="mb-5">
+        <!-- GET form-->
+        <form id="search-form" method="get" action="{{ url_for('app_controller.explore') }}"
+              class="input-group mb-4 custom-card p-1" style="border-radius: 50px;">
+            <label for="q" class="visually-hidden">Search for an object</label>
+            <input id="q" name="q" type="search" value="{{ q }}"
+                   class="form-control border-0 bg-transparent ps-4"
+                   placeholder="Search for an object, e.g. Armbrust, Uhr, Hodler..." style="box-shadow: none;">
+            <button id="search-btn" class="btn btn-pill btn-outline-custom m-1" type="submit">Search</button>
+        </form>
+    </div>
+
+    {# Example cards shown when nobody has searched yet. Edit these freely. #}
+    {% set examples = [
+        {"id": "", "title": "Teapot", "description": "Example object. Click to see how crochet instructions look."},
+        {"id": "", "title": "Pocket watch", "description": "Example object. Click to see how crochet instructions look."},
+        {"id": "", "title": "Crossbow", "description": "Example object. Click to see how crochet instructions look."}
+    ] %}
+
+    {% if error %}
+    <div class="alert alert-warning mb-5">The collection could not be reached. Please try again in a moment.</div>
+    {% elif q and not objects %}
+    <div class="text-center py-5 mb-5">
+        <h4 class="fw-bold">No results for "{{ q }}"</h4>
+        <p class="text-muted">Try a different word, for example "Armbrust" or "Uhr".</p>
+    </div>
+    {% endif %}
+
+    {% if not error and (objects or not q) %}
+    {% set cards = objects if q else examples %}
+    <p class="text-muted mb-4">
+        {% if q %}{{ objects|length }} result(s) for "{{ q }}"{% else %}Examples to get you started{% endif %}
+    </p>
+    <div class="row g-4 mb-5 pb-5">
+        {% for obj in cards %}
+        <div class="col-md-4">
+            <div class="custom-card custom-card-hover h-100">
+                {% if obj.image_url %}
+                <img src="{{ obj.image_url }}" alt="{{ obj.title }}" class="card-image-placeholder">
+                {% else %}
+                <div class="card-image-placeholder"></div>
+                {% endif %}
+                <h5 class="fw-bold mb-2">{{ obj.title }}</h5>
+                <p class="text-muted small mb-4">{{ obj.description|truncate(110) }}</p>
+                <a href="{{ url_for('app_controller.explore_sub', id=obj.id, title=obj.title, description=obj.description|truncate(300)) }}"
+                   class="btn btn-outline-custom btn-pill w-100">Crochet this</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

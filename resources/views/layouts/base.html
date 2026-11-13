@@ -5,38 +5,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{config.APP_NAME}}</title>
-    <link rel="stylesheet" href="../static/styles/bootstrap.css">
-    <link rel="icon" href="{{url_for('static', filename='favicon.ico')}}" sizes="any">
+    
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/bootstrap.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='styles/main.css')}}">
+    <link rel="icon" href="{{url_for('static', filename='favicon.ico')}}" sizes="any">
 </head>
 
 <body>
-    <header>
+    
+    <nav class="navbar navbar-expand-lg sticky-top glass-nav py-3">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <img title="ZHAW" src="{{url_for('static', filename='images/zhaw_rgb_logo_weiss_negativ.png')}}"
-                        width="100" />
-                    <a id="app-title" href="/" class="h1">{{config.APP_NAME}}</a>
-                </div>
+            <a class="navbar-brand d-flex align-items-center gap-3 fw-bold" href="/">
+                <img title="ZHAW" src="{{url_for('static', filename='images/zhaw_logo.png')}}" width="50" alt="ZHAW Logo" /> Häckelthon
+                {{config.APP_NAME}}
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav gap-4">
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.dashboard') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.explore') }}">Explore</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.about') }}">About</a></li>
+                </ul>
             </div>
         </div>
-    </header>
+    </nav>
 
-    {% block content %}
-    {% endblock %}
+    <main class="min-vh-100">
+        {% block content %}
+        {% endblock %}
+    </main>
 
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-12 col-lg-6 text-start">
-                    <div>{{t("organisation.copyright.text")}}</div>
-                </div>
+    <footer class="py-5 mt-5 border-top">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center text-muted gap-3">
+            <div class="fw-bold text-dark">{{config.APP_NAME}}</div>
+            <div class="small">{{t("organisation.copyright.text")}}</div>
+            <div class="small d-flex gap-3">
+                <a href="#" class="text-muted text-decoration-none">Instagram</a>
+                <a href="#" class="text-muted text-decoration-none">GitHub</a>
             </div>
         </div>
     </footer>
+
     <script type="module" src="{{url_for('static', filename='javascripts/main.js')}}"></script>
     {% block scripts %}{% endblock %}
+    
 </body>
-
 </html>
