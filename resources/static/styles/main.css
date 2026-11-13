@@ -58,7 +58,7 @@ body {
  */
 
 header {
-    background-color: var(--zhaw-blue);
+    background-color: var(--zhaw);
     padding: 10px 0;
 }
 
@@ -118,7 +118,7 @@ main {
  */
 
 footer {
-    background-color: var(--zhaw-blue);
+    background-color: var(--zhaw);
     padding: 15px;
 }
 
@@ -154,18 +154,18 @@ footer ul li a:focus {
  */
 
 .btn.btn-primary {
-    background-color: var(--zhaw-blue);
-    border-color: var(--zhaw-blue);
+    background-color: var(--zhaw);
+    border-color: var(--zhaw);
     border-radius: 0;
 }
 
 .btn.btn-primary:hover {
-    background-color: var(--zhaw-light-blue);
-    border-color: var(--zhaw-light-blue);
+    background-color: var(--himmel);
+    border-color: var(--himmel);
 }
 
 .btn.btn-secondary {
-    background-color: var(--zhaw-light-blue);
+    background-color: var(--himmel);
 }
 
 
