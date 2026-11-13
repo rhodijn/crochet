@@ -1,0 +1,56 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <a href="javascript:history.back()" class="text-muted text-decoration-none">&larr; Back to results</a>
+
+    <div class="row g-5 mt-1 mb-5">
+
+        <!-- The Object Card -->
+        <div class="col-lg-4">
+            <div class="custom-card">
+                <div class="card-image-placeholder" style="height: 300px;"></div>
+                <h4 class="fw-bold mb-3">{{ obj.title }}</h4>
+                <p class="text-muted small mb-0">{{ obj.description }}</p>
+            </div>
+        </div>
+
+        <!-- The Style Selection -->
+        <div class="col-lg-8">
+            <h1 class="display-3 fw-bold mb-4" style="letter-spacing: -1px;">{{ obj.title }}</h1>
+            <h5 class="fw-bold mb-4">Choose your crochet style</h5>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="custom-card custom-card-hover h-100 style-option" data-style="2D"
+                         style="cursor: pointer; border: 2px solid var(--text-dark);">
+                        <h5 class="fw-bold mb-2">2D crochet</h5>
+                        <p class="text-muted mb-0">Flat shapes and patterns</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="custom-card custom-card-hover h-100 style-option" data-style="3D"
+                         style="cursor: pointer;">
+                        <h5 class="fw-bold mb-2">3D crochet</h5>
+                        <p class="text-muted mb-0">Shaped and stuffed objects</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- The Instructions -->
+    <div class="row mb-5 pb-5">
+        <div class="col-12">
+            <div class="custom-card p-4 p-md-5">
+                <h5 class="fw-bold mb-4">Your crochet instructions <span id="style-label" class="text-muted fw-normal">(2D)</span></h5>
+                <p class="text-muted fs-5" style="line-height: 1.8;">
+                    The generated instructions for "{{ obj.title }}" will appear here.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

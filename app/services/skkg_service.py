@@ -75,7 +75,7 @@ def search(*terms, fields=None, limit=10, obj_type=config.SKKG_DEFAULT_TYPE, tim
 
     query = build_query(terms, fields, limit, obj_type)
     resp = requests.get(
-        config.ENDPOINT,
+        config.SKKG_ENDPOINT,
         params={"query": query},
         headers={"Accept": "application/sparql-results+json"},
         timeout=timeout,

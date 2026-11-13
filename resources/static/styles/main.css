@@ -24,156 +24,81 @@
  */
 
 :root {
-    --white: #fff;
-    --gras: #a3d045;
-    --himmel: #9adcf6;
-    --koralle: #e62154;
-    --nacht: #05366c;
-    --pflaume: #8a249e;
-    --sakura: #ffb0d4;
-    --zhaw: #0064A6;
+    --bg-light: #f8fafc;
+    --text-dark: #0f172a;
+    --card-bg: rgba(255, 255, 255, 0.8);
+    /* ZHAW Sakura to ZHAW Yuzu gradient */
+    --gradient-accent: linear-gradient(135deg, #ffb0d4 0%, #ffdc0c 100%);
 }
 
-/*
- * 1.   General
- */
-
-html,
 body {
-    min-height: 100vh;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
 }
 
-#app-title {
-    color: var(--white);
-    display: inline-block;
-    margin-bottom: 0;
-    padding: 0 0 0 15px;
-    vertical-align: middle;
-    text-decoration: none;
-    font-weight: normal;
+/* Glassmorphism Navbar */
+.glass-nav {
+    background: rgba(248, 250, 252, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/*
- * 2.   Header
- */
-
-header {
-    background-color: var(--zhaw);
-    padding: 10px 0;
+/* Custom Buttons */
+.btn-pill {
+    border-radius: 50px;
+    padding: 12px 32px;
+    font-weight: bold;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-pill:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+}
+.btn-gradient {
+    background: var(--gradient-accent);
+    color: #000;
+}
+.btn-outline-custom {
+    background: white;
+    border: 1px solid #dee2e6;
+    color: var(--text-dark);
+}
+.btn-outline-custom:hover {
+    background: #f1f5f9;
+}
+.btn-outline-custom.active {
+    background: var(--text-dark);
+    color: white;
+    border-color: var(--text-dark);
 }
 
-header img {
-    display: inline-block;
-    width: 58px;
+/* UI Cards */
+.custom-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    transition: transform 0.2s ease;
 }
-
-/*
- * 3.   Navigation
- */
-
-#main-navigation {
-    display: flex;
-    align-items: center;
-    align-content: center;
-    justify-content: end;
-    height: 100%;
+.custom-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
 }
-
-#main-navigation ul {
-    margin-bottom: 0;
-}
-
-#main-navigation li {
-    display: inline-block;
-}
-
-#main-navigation li.active a {
-    border-bottom: 1px solid var(--white);
-}
-
-#main-navigation li:hover a {
-    border-bottom: 1px solid var(--white);
-}
-
-#main-navigation li+li {
-    margin-left: 20px;
-}
-
-#main-navigation a {
-    color: var(--white);
-    text-decoration: none;
-}
-
-/*
- * 4.   Content
- */
-
-main {
-    margin-top: 50px;
-    min-height: calc(100vh - (50px + 133px));
-}
-
-/*
- * 5.   Footer
- */
-
-footer {
-    background-color: var(--zhaw);
-    padding: 15px;
-}
-
-footer div {
-    color: var(--white);
-}
-
-footer div span {
-    text-decoration: underline;
-}
-
-footer ul li,
-footer ul li a {
-    color: var(--white);
-}
-
-footer ul li a {
-    text-decoration: none;
-}
-
-footer ul li a:hover,
-footer ul li a:focus {
-    text-decoration: underline;
-    color: var(--white);
-}
-
-/*
- * 6.   Components
- */
-
-/*
- * 6.1  Buttons
- */
-
-.btn.btn-primary {
-    background-color: var(--zhaw);
-    border-color: var(--zhaw);
-    border-radius: 0;
-}
-
-.btn.btn-primary:hover {
-    background-color: var(--himmel);
-    border-color: var(--himmel);
-}
-
-.btn.btn-secondary {
-    background-color: var(--himmel);
+.card-image-placeholder {
+    background: #e2e8f0;
+    border-radius: 16px;
+    width: 100%;
+    height: 220px;
+    margin-bottom: 20px;
+    object-fit: cover;
 }
 
 
-/*
- * 7.   Utilities
- */
-
-
-/*
- * 8.   Additions
- */
+input:focus, button:focus {
+    outline: none;
+    box-shadow: none !important;
+}
