@@ -7,6 +7,7 @@ from flask import Flask
 from app.config.settings import Settings
 from app.core.translation.i18n import t, lang
 from app.controllers.app_controller import app_controller
+from app.controllers.skkg_controller import skkg_controller
 from app.services.flash_service import FlashService
 
 config = Settings()
@@ -17,6 +18,7 @@ class Setup:
     @staticmethod
     def register_controllers(app: Flask) -> None:
         app.register_blueprint(app_controller)
+        app.register_blueprint(skkg_controller)
 
     @staticmethod
     def set_flask_secret_key(app: Flask) -> None:
