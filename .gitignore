@@ -23,3 +23,10 @@ log/
 
 # Keep
 !.gitkeep
+
+# Test files
+app/testing/input
+app/testing/output
+
+# Annoying MacOS
+.DS_Store
