@@ -11,24 +11,11 @@ Usage:
 
 Requires: pip install requests
 """
-import re
-import requests
+import re, requests
 
-ENDPOINT = "https://sparql.digital.skkg.ch"
+from app.config.settings import Settings
 
-PREFIXES = """PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-"""
-
-# Where text lives on an object in the Linked Art model.
-# Adjust these paths if the SKKG graph turns out to use different ones.
-TEXT_PATHS = {
-    "labels": "rdfs:label",
-    "names": "crm:P1_is_identified_by/crm:P190_has_symbolic_content",
-    "descriptions": "crm:P67i_is_referred_to_by/crm:P190_has_symbolic_content",
-}
-
-DEFAULT_TYPE = "crm:E22_Human-Made_Object"
+config: Settings = Settings()
 
 
 def regex_literal(term: str) -> str:
@@ -41,26 +28,26 @@ def build_query(terms, fields, limit, obj_type):
     blocks = []
     for i, term in enumerate(terms):
         var = f"?t{i}"
-        unions = " UNION ".join(f"{{ ?obj {TEXT_PATHS[f]} {var} }}" for f in fields)
+        unions = " UNION ".join(f"{{ ?obj {config.SKKG_TEXT_PATHS[f]} {var} }}" for f in fields)
         blocks.append(
             f"  {unions}\n"
             f'  FILTER(REGEX(STR({var}), "{regex_literal(term)}", "i"))'
         )
     type_line = f"  ?obj a {obj_type} .\n" if obj_type else ""
 
-    return f"""{PREFIXES}
+    return f"""{config.SKKG_PREFIXES}
 SELECT ?obj (SAMPLE(?label) AS ?title) (SAMPLE(?name) AS ?altTitle) (SAMPLE(?t0) AS ?match)
 WHERE {{
 {type_line}{chr(10).join(blocks)}
   OPTIONAL {{ ?obj rdfs:label ?label }}
-  OPTIONAL {{ ?obj {TEXT_PATHS["names"]} ?name }}
+  OPTIONAL {{ ?obj {config.SKKG_TEXT_PATHS["names"]} ?name }}
 }}
 GROUP BY ?obj
 LIMIT {limit}
 """
 
 
-def search(*terms, fields=None, limit=10, obj_type=DEFAULT_TYPE, timeout=60):
+def search(*terms, fields=None, limit=10, obj_type=config.SKKG_DEFAULT_TYPE, timeout=60):
     """
     Search the collection and return a dictionary:
 
@@ -81,14 +68,14 @@ def search(*terms, fields=None, limit=10, obj_type=DEFAULT_TYPE, timeout=60):
     """
     if not terms:
         raise ValueError("Give at least one search term.")
-    fields = fields or list(TEXT_PATHS)
-    unknown = set(fields) - set(TEXT_PATHS)
+    fields = fields or list(config.SKKG_TEXT_PATHS)
+    unknown = set(fields) - set(config.SKKG_TEXT_PATHS)
     if unknown:
-        raise ValueError(f"Unknown field(s): {unknown}. Use {list(TEXT_PATHS)}.")
+        raise ValueError(f"Unknown field(s): {unknown}. Use {list(config.SKKG_TEXT_PATHS)}.")
 
     query = build_query(terms, fields, limit, obj_type)
     resp = requests.get(
-        ENDPOINT,
+        config.ENDPOINT,
         params={"query": query},
         headers={"Accept": "application/sparql-results+json"},
         timeout=timeout,
@@ -107,7 +94,7 @@ def search(*terms, fields=None, limit=10, obj_type=DEFAULT_TYPE, timeout=60):
 
 
 if __name__ == "__main__":
-    res = search("Hodler", limit=10)
+    res = search("Bär", limit=10)
 
     for k, v in res['results'].items():
         print(f"{k}: {v['title']}")
