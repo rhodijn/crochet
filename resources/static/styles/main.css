@@ -97,7 +97,6 @@ body {
     object-fit: cover;
 }
 
-
 input:focus, button:focus {
     outline: none;
     box-shadow: none !important;

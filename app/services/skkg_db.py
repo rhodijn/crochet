@@ -15,7 +15,6 @@ MAX_TERMS = 5
 FEATURED_OBJECT_IDS = [
     "11880",                                  # Hodler, Schwinger
     "0ff57e16-64cc-475b-aacc-d0cab9a42d1e",   # Hodler, Studie zu «Der Auserwählte»
-    "10044",                                  # Hodler, Rückzug von Marignano
     "1682",                                   # Hodler, Mondschein am Genfersee
 ]
 
