@@ -1,8 +1,56 @@
 {% extends "layouts/base.html" %}
+
 {% block content %}
-<main class="dashboard-page">
-    <p>
-        Dashboard Page
-    </p>
-</main>
+<div class="container mt-5 pt-5">
+    
+    <div class="row mb-5 pb-4">
+        <div class="col-lg-8">
+            <h1 class="display-3 fw-bold mb-4" style="letter-spacing: -1px;">From inspiration<br>to creation.</h1>
+            <p class="lead text-muted mb-4">Discover objects from digital collections and transform them into unique crochet projects. Explore, choose, and let your next creation take shape.</p>
+            <div class="d-flex gap-3 mb-3 flex-wrap">
+                <a href="{{ url_for('app_controller.explore') }}" class="btn btn-pill btn-gradient">Explore the collection</a>
+                <a href="{{ url_for('app_controller.about') }}" class="btn btn-pill btn-outline-custom">How it works</a>
+            </div>
+            <small class="text-muted">Inspired by open data. Made by creativity.</small>
+        </div>
+    </div>
+
+    <div class="custom-card mb-5" style="height: 450px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0);"></div>
+
+    <div class="row mt-5 pt-5">
+        <div class="col-lg-8 mb-5">
+            <h2 class="display-6 fw-bold">Every object has a story.<br>Give it a new form.</h2>
+            <p class="text-muted mt-3 fs-5">What if objects from digital museum collections could become something you create with your own hands? With masche., you can explore cultural objects, choose your inspiration and generate personalized crochet instructions to bring your own interpretation to life.</p>
+        </div>
+    </div>
+
+    <h3 class="fw-bold mb-4">How it works</h3>
+    <div class="row g-4 mb-5 pb-5">
+        <div class="col-md-4">
+            <div class="custom-card h-100">
+                <div class="card-image-placeholder"></div>
+                <h5 class="fw-bold">1. Discover</h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="custom-card h-100">
+                <div class="card-image-placeholder"></div>
+                <h5 class="fw-bold">2. Customize</h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="custom-card h-100">
+                <div class="card-image-placeholder"></div>
+                <h5 class="fw-bold">3. Create</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-5 pb-5">
+        <h3 class="fw-bold mb-3">Ready to make something unique?</h3>
+        <p class="text-muted mb-4 fs-5">Your next crochet project might be waiting in a digital collection.</p>
+        <a href="{{ url_for('app_controller.explore') }}" class="btn btn-pill btn-gradient">Start Exploring</a>
+    </div>
+
+</div>
 {% endblock %}
