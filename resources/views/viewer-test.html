@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crochet pattern previewer</title>
+<style>
+:root{--bg:#faf8f4;--fg:#25231f;--mu:#716e66;--pn:#fff;--bd:#d9d5cb;--ac:#b4472f;--er:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1b19;--fg:#ecebe6;--mu:#a3a199;--pn:#262522;--bd:#3b3a36;--ac:#e8896f;--er:#ff8a80}}
+html{height:100%}
+body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd)}
+h1{font-size:15px;margin:0 6px 0 0}
+select,button,input{font:inherit;color:var(--fg);background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:4px 8px}
+button{background:var(--ac);color:#fff;border-color:var(--ac);cursor:pointer}
+input[type=number]{width:70px}input[type=range]{padding:0;width:140px}
+main{flex:1;display:flex;min-height:0;flex-wrap:wrap}
+#ed{flex:1 1 300px;display:flex;flex-direction:column;min-height:180px;border-right:1px solid var(--bd)}
+textarea{flex:1;resize:none;border:0;border-radius:0;padding:10px;font:12px/1.5 ui-monospace,monospace;background:var(--pn);color:var(--fg);outline:0;white-space:pre;overflow:auto}
+#st{padding:6px 10px;font-size:12px;color:var(--mu);max-height:5.5em;overflow:auto;white-space:pre-wrap}#st.er{color:var(--er)}
+#cv{flex:2 1 380px;position:relative;min-height:300px}
+#tip{position:absolute;left:8px;bottom:8px;font-size:12px;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:2px 8px;pointer-events:none}
+</style></head><body>
+<header>
+  <h1>🧶 Crochet previewer</h1>
+  <button id="go" title="Shift+Enter in the editor">Calculate</button>
+  <label>iterations <input id="it" type="number" min="0" max="5000" value="400"></label>
+  <select id="vw"><option value="yarn">Yarn view</option><option value="graph">Stitch graph</option></select>
+  <label>yarn thickness <input id="yr" type="range" min=".1" max=".4" step=".01" value=".27"></label>
+  <label>stitches shown <input id="sl" type="range" min="1" max="1" value="1"></label>
+</header>
+<main>
+  <div id="ed"><textarea id="src" spellcheck="false" placeholder="Paste a crochetPARADE pattern here, then press Calculate (or Shift+Enter)"></textarea><div id="st"></div></div>
+  <div id="cv"><div id="tip">hover a stitch</div></div>
+</main>
+
+<!-- three.js r128 + OrbitControls: self-host these if you don't want a CDN dependency -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- the viewer: keep crochet-viewer.js next to this file (or change the path) -->
+<script src="../../resources/static/javascripts/crochet-viewer.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let count = 0, error = null, last = null;
+
+const viewer = CrochetViewer.mount($('cv'), {
+  mode: $('vw').value,
+  thickness: +$('yr').value,
+  iterations: +$('it').value,
+  onError: m => { error = m; if (m) show(); },
+  onHover: h => { $('tip').textContent = h ? `row ${h.row}, stitch ${h.stitch} · #${h.id} · ${h.type}` : 'hover a stitch'; },
+  onStatus: s => {
+    last = s;
+    if (s.stitches !== count) {            // new model: reset the "stitches shown" slider to "all"
+      count = s.stitches; $('sl').max = count; $('sl').value = count; viewer.setVisibleCount(null);
+    }
+    show();
+  }
+});
+
+function show() {
+  const st = $('st');
+  if (error) { st.textContent = error; st.className = 'er'; return; }
+  if (!last) { st.textContent = ''; st.className = ''; return; }
+  st.className = '';
+  st.textContent = `${last.rows} rows · ${last.stitches} stitches · ${last.links} links · relaxing ${last.iteration}/${last.iterations}` +
+    (last.done ? ' · done' : '') +
+    (last.warnings.length ? '\n' + last.warnings.join('\n') : '') +
+    ($('vw').value === 'graph' ? '\nBlue: working direction. Red: where each stitch is worked into.' : '');
+}
+
+function calc() {
+  viewer.setIterations(+$('it').value || 0);
+  last = null; viewer.setPattern($('src').value);
+  show();
+}
+
+$('go').onclick = calc;
+$('src').addEventListener('keydown', e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); calc(); } });
+$('vw').onchange = () => { viewer.setMode($('vw').value); show(); };
+$('yr').oninput = () => viewer.setThickness(+$('yr').value);
+$('sl').oninput = () => viewer.setVisibleCount(+$('sl').value >= count ? null : +$('sl').value);
+</script>
+</body></html>

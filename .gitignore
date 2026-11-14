@@ -23,3 +23,9 @@ log/
 
 # Keep
 !.gitkeep
+
+# Testing files
+app/testing/input/
+app/testing/output
+.DS_Store
+.vscode/
