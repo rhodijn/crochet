@@ -7,9 +7,10 @@ REQUIRES A HUGGING FACE TOKEN via environment variable HF_TOKEN:
     export HF_TOKEN=hf_xxx
 
 Usage:
-    python image_to_glb.py input.png         # works with an image URL as well
-    python image_to_glb.py input.png -o model.glb --resolution 512
-    python image_to_glb.py --show-api        # print the Space's current endpoints
+    python img_to_glb.py input.png         # works with an image URL as well
+    python img_to_glb.py input.png -o model.glb --resolution 512
+    python img_to_glb.py <url-to-img> -o output/model.glb --resolution 512
+    python img_to_glb.py --show-api        # print the Space's current endpoints
 """
 
 import argparse
