@@ -239,14 +239,72 @@ function build(P){
 function layout(G,P){
   const{nodes,edges,rows}=G,n=nodes.length,X=new Float32Array(3*n);
   let s=(P.meta.start|0)+1;const rnd=()=>(s=Math.imul(s^s>>>15,1|s)+0x6D2B79F5|0,((s^s>>>7)>>>0)/4294967296);
-  rows.forEach((R,r)=>{const m=R.tops.length,flat=R.turn||(r>0&&rows[r-1].turn);let t=0;for(let k=0;k<r;k++)if(rows[k].turn)t++;
-    R.tops.forEach((nn,i)=>{const o=3*nn.id;
-      if(flat){X[o]=(t%2?-1:1)*(i-(m-1)/2);X[o+1]=r*.9;X[o+2]=0}
-      else{const a=2*Math.PI*(i+.5)/m,q=Math.max(m/(2*Math.PI),.3);X[o]=q*Math.cos(a);X[o+1]=r*.9;X[o+2]=q*Math.sin(a)}
-      X[o]+=(rnd()-.5)*.2;X[o+1]+=(rnd()-.5)*.2;X[o+2]+=(rnd()-.5)*.2})});
-  nodes.forEach(nn=>{if(nn.hidden){const e=edges.find(e=>e[0]===nn.id||e[1]===nn.id);if(e){const o=e[0]===nn.id?e[1]:e[0];for(let k=0;k<3;k++)X[3*nn.id+k]=X[3*o+k]}}});
+  const placed=new Uint8Array(n);
   const adj=new Set();edges.forEach(e=>{adj.add(e[0]*n+e[1]);adj.add(e[1]*n+e[0])});
   const S=1<<14,head=new Int32Array(S),nxt=new Int32Array(n),R=.8;
+  function step(){ // one relaxation step over the stitches placed so far
+    for(const[a,b,l]of edges){if(!placed[a]||!placed[b])continue;const i=3*a,j=3*b,dx=X[j]-X[i],dy=X[j+1]-X[i+1],dz=X[j+2]-X[i+2],d=Math.hypot(dx,dy,dz)||1e-6,f=.45*(d-l)/d;
+      X[i]+=dx*f;X[i+1]+=dy*f;X[i+2]+=dz*f;X[j]-=dx*f;X[j+1]-=dy*f;X[j+2]-=dz*f}
+    head.fill(-1);
+    const H=(x,y,z)=>((x*73856093)^(y*19349663)^(z*83492791))&(S-1);
+    for(let i=0;i<n;i++){if(!placed[i])continue;const h=H(Math.floor(X[3*i]/R),Math.floor(X[3*i+1]/R),Math.floor(X[3*i+2]/R));nxt[i]=head[h];head[h]=i}
+    for(let i=0;i<n;i++){if(!placed[i])continue;const cx=Math.floor(X[3*i]/R),cy=Math.floor(X[3*i+1]/R),cz=Math.floor(X[3*i+2]/R);
+      for(let a=-1;a<2;a++)for(let b=-1;b<2;b++)for(let c=-1;c<2;c++)for(let j=head[H(cx+a,cy+b,cz+c)];j>=0;j=nxt[j]){
+        if(j<=i||adj.has(i*n+j))continue;
+        const dx=X[3*j]-X[3*i],dy=X[3*j+1]-X[3*i+1],dz=X[3*j+2]-X[3*i+2],d=Math.hypot(dx,dy,dz);
+        if(d<R&&d>1e-6){const f=.25*(R-d)/d;X[3*i]-=dx*f;X[3*i+1]-=dy*f;X[3*i+2]-=dz*f;X[3*j]+=dx*f;X[3*j+1]+=dy*f;X[3*j+2]+=dz*f}}}
+  }
+  // Growth-based initial placement: every round is laid out next to the stitches it is worked into,
+  // continuing in the direction the piece is growing. Limbs therefore start at their attachment
+  // point and grow outward instead of all piling up on one axis.
+  const parents=Array.from({length:n},()=>[]),aLen=new Float32Array(n);
+  edges.forEach(e=>{if(e[3]==='a'){const lo=Math.min(e[0],e[1]),hi=Math.max(e[0],e[1]);if(lo!==hi){parents[hi].push(lo);aLen[hi]=e[2]}}});
+  const GROW=6,dirOfRow=[];let cAll=[0,0,0],nAll=0;
+  const norm=v=>{const L=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/L,v[1]/L,v[2]/L]};
+  const cross=(p,q)=>[p[1]*q[2]-p[2]*q[1],p[2]*q[0]-p[0]*q[2],p[0]*q[1]-p[1]*q[0]];
+  const dot3=(p,q)=>p[0]*q[0]+p[1]*q[1]+p[2]*q[2];
+  rows.forEach((R,r)=>{const m=R.tops.length,flat=R.turn||(r>0&&rows[r-1].turn);let t=0;for(let k=0;k<r;k++)if(rows[k].turn)t++;
+    const jit=o=>{X[o]+=(rnd()-.5)*.2;X[o+1]+=(rnd()-.5)*.2;X[o+2]+=(rnd()-.5)*.2};
+    const old=()=>R.tops.forEach((nn,i)=>{const o=3*nn.id;
+      if(flat){X[o]=(t%2?-1:1)*(i-(m-1)/2);X[o+1]=r*.9;X[o+2]=0}
+      else{const a=2*Math.PI*(i+.5)/m,q=Math.max(m/(2*Math.PI),.3);X[o]=q*Math.cos(a);X[o+1]=r*.9;X[o+2]=q*Math.sin(a)}
+      jit(o)});
+    const par=R.tops.map(nn=>parents[nn.id].filter(p=>placed[p]));
+    const P=[...new Set(par.flat())];
+    let dir=[0,1,0];
+    if(flat||r<2||!P.length){old()}
+    else if(P.length<3){ // sewing / joining rows: sit between the stitches they connect
+      const mid=[0,0,0];P.forEach(p=>{for(let k=0;k<3;k++)mid[k]+=X[3*p+k]/P.length});
+      R.tops.forEach((nn,i)=>{const o=3*nn.id,pp=par[i].length?par[i]:P;for(let k=0;k<3;k++){X[o+k]=0;pp.forEach(p=>X[o+k]+=X[3*p+k]/pp.length)}jit(o)});
+      dir=dirOfRow[r-1]||dir}
+    else{
+      const cP=[0,0,0];P.forEach(p=>{for(let k=0;k<3;k++)cP[k]+=X[3*p+k]/P.length});
+      let a=0,b=0,c=0,d=0,e=0,f=0;P.forEach(p=>{const x=X[3*p]-cP[0],y=X[3*p+1]-cP[1],z=X[3*p+2]-cP[2];a+=x*x;b+=x*y;c+=x*z;d+=y*y;e+=y*z;f+=z*z});
+      const tr=a+d+f;let v=[.577,.577,.577];
+      for(let q=0;q<30;q++){const w=[tr*v[0]-(a*v[0]+b*v[1]+c*v[2]),tr*v[1]-(b*v[0]+d*v[1]+e*v[2]),tr*v[2]-(c*v[0]+e*v[1]+f*v[2])];v=norm(w)}
+      // is this round a continuation of the previous piece, or the start of something new?
+      const cnt=new Map();P.forEach(p=>cnt.set(nodes[p].r,(cnt.get(nodes[p].r)||0)+1));
+      let pr=-1,best=0;cnt.forEach((c2,k)=>{if(c2>best){best=c2;pr=k}});
+      const cont=pr>=0&&dirOfRow[pr]&&best>=.6*rows[pr].tops.length;
+      let ref;if(cont)ref=dirOfRow[pr];else{const dd=[cP[0]-cAll[0]/nAll,cP[1]-cAll[1]/nAll,cP[2]-cAll[2]/nAll];ref=Math.hypot(...dd)>1e-3?dd:(dirOfRow[r-1]||[0,1,0])}
+      if(dot3(v,ref)<0)v=[-v[0],-v[1],-v[2]];
+      dir=v;
+      let h=0,hn=0;R.tops.forEach(nn=>{if(aLen[nn.id]){h+=aLen[nn.id];hn++}});h=hn?h/hn:1;
+      const cN=[cP[0]+v[0]*h,cP[1]+v[1]*h,cP[2]+v[2]*h],rNew=Math.max(m/(2*Math.PI),.3);
+      // radial vector of each stitch's parents around the old ring axis
+      const rad=R.tops.map((nn,i)=>{const pp=par[i].length?par[i]:P,q=[0,0,0];pp.forEach(p=>{for(let k=0;k<3;k++)q[k]+=(X[3*p+k]-cP[k])/pp.length});
+        const al=dot3(q,v);return[q[0]-al*v[0],q[1]-al*v[1],q[2]-al*v[2]]});
+      const rPar=rad.reduce((s,q)=>s+Math.hypot(...q),0)/m;
+      let u=norm(cross(v,Math.abs(v[1])<.9?[0,1,0]:[1,0,0])),w=cross(v,u);
+      R.tops.forEach((nn,i)=>{const o=3*nn.id;
+        if(rPar>.4){const sc=rNew/rPar;for(let k=0;k<3;k++)X[o+k]=cN[k]+rad[i][k]*sc}
+        else{const an=2*Math.PI*(i+.5)/m;for(let k=0;k<3;k++)X[o+k]=cN[k]+rNew*(Math.cos(an)*u[k]+Math.sin(an)*w[k])}
+        jit(o)})}
+    dirOfRow[r]=dir;
+    R.tops.forEach(nn=>{placed[nn.id]=1;cAll[0]+=X[3*nn.id];cAll[1]+=X[3*nn.id+1];cAll[2]+=X[3*nn.id+2];nAll++});
+    if(r>=3)for(let q=0;q<GROW;q++)step()});
+  nodes.forEach(nn=>{if(nn.hidden){const e=edges.find(e=>e[0]===nn.id||e[1]===nn.id);if(e){const o=e[0]===nn.id?e[1]:e[0];for(let k=0;k<3;k++)X[3*nn.id+k]=X[3*o+k]}}});
+  placed.fill(1);
   const opts={stuff:1};
   function press(target){ // squash along the thinnest principal axis until thin/long extent <= target
     const live=[];for(let i=0;i<n;i++)if(!nodes[i].hidden)live.push(i);const m=live.length;if(m<4)return;
@@ -267,16 +325,7 @@ function layout(G,P){
   const relax=function(iters){
     for(let it=0;it<iters;it++){
       if(opts.stuff<1)press(opts.stuff);
-      for(const[a,b,l]of edges){const i=3*a,j=3*b,dx=X[j]-X[i],dy=X[j+1]-X[i+1],dz=X[j+2]-X[i+2],d=Math.hypot(dx,dy,dz)||1e-6,f=.45*(d-l)/d;
-        X[i]+=dx*f;X[i+1]+=dy*f;X[i+2]+=dz*f;X[j]-=dx*f;X[j+1]-=dy*f;X[j+2]-=dz*f}
-      head.fill(-1);
-      const H=(x,y,z)=>((x*73856093)^(y*19349663)^(z*83492791))&(S-1);
-      for(let i=0;i<n;i++){const h=H(Math.floor(X[3*i]/R),Math.floor(X[3*i+1]/R),Math.floor(X[3*i+2]/R));nxt[i]=head[h];head[h]=i}
-      for(let i=0;i<n;i++){const cx=Math.floor(X[3*i]/R),cy=Math.floor(X[3*i+1]/R),cz=Math.floor(X[3*i+2]/R);
-        for(let a=-1;a<2;a++)for(let b=-1;b<2;b++)for(let c=-1;c<2;c++)for(let j=head[H(cx+a,cy+b,cz+c)];j>=0;j=nxt[j]){
-          if(j<=i||adj.has(i*n+j))continue;
-          const dx=X[3*j]-X[3*i],dy=X[3*j+1]-X[3*i+1],dz=X[3*j+2]-X[3*i+2],d=Math.hypot(dx,dy,dz);
-          if(d<R&&d>1e-6){const f=.25*(R-d)/d;X[3*i]-=dx*f;X[3*i+1]-=dy*f;X[3*i+2]-=dz*f;X[3*j]+=dx*f;X[3*j+1]+=dy*f;X[3*j+2]+=dz*f}}}
+      step();
     }
     return X};
   relax.opts=opts;return relax
