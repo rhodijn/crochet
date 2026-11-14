@@ -4,7 +4,8 @@ Convert a single image to a GLB 3D model using the microsoft/TRELLIS.2
 Hugging Face Space via gradio_client.
 
 REQUIRES A HUGGING FACE TOKEN via environment variable HF_TOKEN:
-    export HF_TOKEN=hf_xxx
+    export HF_TOKEN=hf_xxx      # Unix/macOS
+    $env:HF_TOKEN='hf_xxx'      # Windows PowerShell
 
 Usage:
     python img_to_glb.py input.png         # works with an image URL as well
