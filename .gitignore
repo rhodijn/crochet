@@ -23,3 +23,6 @@ log/
 
 # Keep
 !.gitkeep
+
+.env
+app/data/image_cache.db

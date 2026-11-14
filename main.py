@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+from dotenv import load_dotenv
 
+load_dotenv()
 from app.config.settings import Settings
 from app.config.setup import Setup
 from flask import Flask, session

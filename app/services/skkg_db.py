@@ -1,8 +1,9 @@
 """
 Search the local SQLite snapshot of the SKKG collection (app/data/skkg.db).
-The file is created once with:  python -m scripts.build_skkg_db
+The file is created once with:  python scripts/build_skkg_db.py
 """
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "skkg.db"
@@ -45,7 +46,7 @@ COLUMNS = "id, uri, title, artists, date, gattung, material, schlagwoerter"
 def connect() -> sqlite3.Connection:
     if not DB_PATH.exists():
         raise FileNotFoundError(
-            f"{DB_PATH} does not exist. Build it with: python -m scripts.build_skkg_db"
+            f"{DB_PATH} does not exist. Build it with: python scripts/build_skkg_db.py"
         )
     connection = sqlite3.connect(DB_PATH.as_uri() + "?mode=ro", uri=True)  # read-only
     connection.row_factory = sqlite3.Row
@@ -82,7 +83,7 @@ def search(keyword: str, limit: int = 20, offset: int = 0, fields: list = None) 
         params += [*fields, _like_pattern(term)]
     where = " AND ".join(conditions)
 
-    with connect() as connection:
+    with closing(connect()) as connection:
         total = connection.execute(
             f"SELECT COUNT(*) FROM artworks WHERE {where}", params
         ).fetchone()[0]
@@ -109,9 +110,18 @@ def search(keyword: str, limit: int = 20, offset: int = 0, fields: list = None) 
 def get_featured() -> list:
     """The example artworks, in the order of FEATURED_OBJECT_IDS."""
     marks = ",".join("?" * len(FEATURED_OBJECT_IDS))
-    with connect() as connection:
+    with closing(connect()) as connection:
         rows = connection.execute(
             f"SELECT {COLUMNS} FROM artworks WHERE id IN ({marks})", FEATURED_OBJECT_IDS
         ).fetchall()
     by_id = {row["id"]: dict(row) for row in rows}
     return [by_id[i] for i in FEATURED_OBJECT_IDS if i in by_id]
+
+
+def get_artwork(object_id: str):
+    """One artwork by its id, or None."""
+    with closing(connect()) as connection:
+        row = connection.execute(
+            f"SELECT {COLUMNS} FROM artworks WHERE id = ?", (object_id,)
+        ).fetchone()
+    return dict(row) if row else None

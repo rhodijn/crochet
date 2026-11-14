@@ -1,55 +1,51 @@
-#!/usr/bin/env python3
-
 import logging
 
-import requests
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, abort, render_template, request
 
-from app.config.settings import Settings
-from app.services.flash_service import FlashService
-from app.services.object_service import search_objects
+from app.services import skkg_db
 
-app_controller: Blueprint = Blueprint("app_controller", __name__)
-config: Settings = Settings()
-flash_service: FlashService = FlashService()
 logger = logging.getLogger(__name__)
+
+app_controller = Blueprint("app_controller", __name__)
+
+PAGE_SIZE = 24
 
 
 @app_controller.get("/")
-def dashboard() -> str:
+def dashboard():
     return render_template("pages/home/index.html")
 
 
+@app_controller.get("/about")
+def about():
+    return render_template("pages/about/about.html")
+
+
 @app_controller.get("/explore")
-def explore() -> str:
+def explore():
     q = request.args.get("q", "").strip()
-    objects: list[dict] = []
-    error = False
-    if q:
-        try:
-            objects = search_objects(q)
-        except requests.RequestException:
-            logger.exception("SKKG search failed")
-            error = True
+    page = max(request.args.get("page", 1, type=int), 1)
+    objects, total, error = [], 0, False
+
+    try:
+        if len(q) >= 2:
+            result = skkg_db.search(q, limit=PAGE_SIZE, offset=(page - 1) * PAGE_SIZE)
+            objects, total = result["results"], result["total"]
+        elif not q:
+            objects = skkg_db.get_featured()      # examples before anyone searches
+    except Exception:
+        logger.exception("Explore search failed")
+        error = True
+
     return render_template(
-        "pages/explore/explore.html", objects=objects, q=q, error=error
+        "pages/explore/explore.html",
+        q=q, objects=objects, total=total, page=page, page_size=PAGE_SIZE, error=error,
     )
 
 
-@app_controller.get("/explore_sub")
-def explore_sub():
-    # The card link sends ?id=...&title=...&description=...
-    title = request.args.get("title", "").strip()
-    if not title:
-        return redirect(url_for("app_controller.explore"))
-    obj = {
-        "id": request.args.get("id", ""),
-        "title": title,
-        "description": request.args.get("description", ""),
-    }
+@app_controller.get("/explore/<object_id>")
+def explore_sub(object_id):
+    obj = skkg_db.get_artwork(object_id)
+    if not obj:
+        abort(404)
     return render_template("pages/explore/explore_sub.html", obj=obj)
-
-
-@app_controller.get("/about")
-def about() -> str:
-    return render_template("pages/about/about.html")

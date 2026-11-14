@@ -9,33 +9,74 @@
         <!-- The Object Card -->
         <div class="col-lg-4">
             <div class="custom-card">
-                <div class="card-image-placeholder" style="height: 300px;"></div>
-                <h4 class="fw-bold mb-3">{{ obj.title }}</h4>
-                <p class="text-muted small mb-0">{{ obj.description }}</p>
+                <div class="card-image-placeholder overflow-hidden" style="height: 300px;">
+                    <img src="/api/skkg/image/{{ obj.id }}?size=full" alt="{{ obj.title }}"
+                         class="w-100 h-100" style="object-fit: contain;" onerror="this.remove()">
+                </div>
+                <h4 class="fw-bold mb-3">{{ obj.title or "Untitled" }}</h4>
+                <dl class="small mb-0">
+                    {% for label, value in [("Artist", obj.artists), ("Date", obj.date),
+                                            ("Type", obj.gattung), ("Material", obj.material)] if value %}
+                    <dt class="text-muted fw-normal">{{ label }}</dt>
+                    <dd class="mb-2">{{ value }}</dd>
+                    {% endfor %}
+                </dl>
+                <a href="{{ obj.uri }}" target="_blank" rel="noopener" class="small text-muted">View at SKKG &rarr;</a>
             </div>
         </div>
 
         <!-- The Style Selection -->
         <div class="col-lg-8">
-            <h1 class="display-3 fw-bold mb-4" style="letter-spacing: -1px;">{{ obj.title }}</h1>
+            <h1 class="display-5 fw-bold mb-4" style="letter-spacing: -1px;">{{ obj.title or "Untitled" }}</h1>
             <h5 class="fw-bold mb-4">Choose your crochet style</h5>
 
-            <div class="row g-4">
+            <div class="row g-4 mb-4">
                 <div class="col-md-6">
-                    <div class="custom-card custom-card-hover h-100 style-option" data-style="2D"
+                    <div class="custom-card custom-card-hover h-100 style-option" data-style="2D" role="button" tabindex="0"
                          style="cursor: pointer; border: 2px solid var(--text-dark);">
                         <h5 class="fw-bold mb-2">2D crochet</h5>
-                        <p class="text-muted mb-0">Flat shapes and patterns</p>
+                        <p class="text-muted mb-0">A flat picture in tapestry crochet, with a colour chart.</p>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="custom-card custom-card-hover h-100 style-option" data-style="3D"
+                    <div class="custom-card custom-card-hover h-100 style-option" data-style="3D" role="button" tabindex="0"
                          style="cursor: pointer;">
                         <h5 class="fw-bold mb-2">3D crochet</h5>
-                        <p class="text-muted mb-0">Shaped and stuffed objects</p>
+                        <p class="text-muted mb-0">A shaped and stuffed amigurumi figure. Takes a few minutes.</p>
                     </div>
                 </div>
             </div>
+
+            <!-- Options: size only for 2D, colours and yarn for both -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4" id="option-size">
+                    <label for="width" class="form-label small text-muted">Size</label>
+                    <select id="width" class="form-select">
+                        <option value="30">Small (30 stitches wide)</option>
+                        <option value="40" selected>Medium (40 stitches wide)</option>
+                        <option value="60">Large (60 stitches wide)</option>
+                    </select>
+                </div>
+                <div class="col-sm-4">
+                    <label for="colors" class="form-label small text-muted">Yarn colours</label>
+                    <select id="colors" class="form-select">
+                        <option value="4">4 colours (easier)</option>
+                        <option value="6" selected>6 colours</option>
+                        <option value="8">8 colours (more detail)</option>
+                    </select>
+                </div>
+                <div class="col-sm-4">
+                    <label for="yarn" class="form-label small text-muted">Yarn weight</label>
+                    <select id="yarn" class="form-select">
+                        <option value="fine">Fine – sport (3 mm hook)</option>
+                        <option value="light" selected>Light – DK (4 mm hook)</option>
+                        <option value="medium">Medium – worsted (5 mm hook)</option>
+                        <option value="bulky">Bulky – chunky (6.5 mm hook)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="generate-btn" class="btn btn-pill btn-gradient" data-object-id="{{ obj.id }}">Generate instructions</button>
         </div>
 
     </div>
@@ -45,12 +86,158 @@
         <div class="col-12">
             <div class="custom-card p-4 p-md-5">
                 <h5 class="fw-bold mb-4">Your crochet instructions <span id="style-label" class="text-muted fw-normal">(2D)</span></h5>
-                <p class="text-muted fs-5" style="line-height: 1.8;">
-                    The generated instructions for "{{ obj.title }}" will appear here.
+                <p id="status" class="text-muted fs-5 mb-0">Choose a style and press "Generate instructions".</p>
+                <div id="visual" class="mt-4"></div>
+                <div id="instructions" class="mt-4"></div>
+                <p class="text-muted small mt-4 mb-0">
+                    Based on «{{ obj.title }}»{% if obj.artists %} by {{ obj.artists }}{% endif %},
+                    Stiftung für Kunst, Kultur und Geschichte (SKKG), Winterthur.
+                    Generated instructions can contain mistakes – please check stitch counts before you start.
                 </p>
             </div>
         </div>
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script>
+(() => {
+    const OBJECT_ID = document.getElementById("generate-btn").dataset.objectId;
+    let style = "2D";
+
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status"), visual = $("visual"), instructions = $("instructions");
+    const button = $("generate-btn");
+
+    // ---------------------------------------------------------------- style choice
+    document.querySelectorAll(".style-option").forEach((card) => {
+        const choose = () => {
+            style = card.dataset.style;
+            document.querySelectorAll(".style-option").forEach((c) => {
+                c.style.border = c === card ? "2px solid var(--text-dark)" : "";
+            });
+            $("style-label").textContent = `(${style})`;
+            $("option-size").hidden = style !== "2D";      // size in stitches only applies to the 2D chart
+        };
+        card.addEventListener("click", choose);
+        card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") choose(); });
+    });
+
+    // ---------------------------------------------------------------- helpers
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const setStatus = (text) => { statusEl.textContent = text; };
+    const choices = () => ({ colors: $("colors").value, yarn_weight: $("yarn").value });
+
+    async function request(url, body) {
+        const options = body
+            ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+            : {};
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => ({ success: false, message: `Unexpected server response (${res.status}).` }));
+        if (!res.ok || data.success === false) throw new Error(data.message || "Request failed.");
+        return data;
+    }
+
+    function renderPattern(p) {
+        if (!p) return "";
+        const m = p.materials || {};
+        const yarn = (m.yarn || []).map((y) =>
+            `<li><span style="display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;background:${esc(y.hex)}"></span>
+             ${esc(y.color)} (${esc(y.hex)}), about ${esc(y.amount_g)} g</li>`).join("");
+        const other = (m.other || []).map((o) => `<li>${esc(o)}</li>`).join("");
+        const abbr = Object.entries(p.abbreviations || {})
+            .map(([k, v]) => `<li><strong>${esc(k)}</strong>: ${esc(v)}</li>`).join("");
+        const parts = (p.parts || []).map((part) => `
+            <h6 class="fw-bold mt-4">${esc(part.name)}${part.color ? ` <span class="text-muted fw-normal">(${esc(part.color)})</span>` : ""}</h6>
+            <ol class="mb-0">${(part.steps || []).map((s) =>
+                `<li><strong>${esc(s.step)}:</strong> ${esc(s.instruction)}${s.stitch_count ? ` <span class="text-muted">(${esc(s.stitch_count)})</span>` : ""}</li>`).join("")}</ol>`).join("");
+        const assembly = (p.assembly || []).map((a) => `<li>${esc(a)}</li>`).join("");
+        const warnings = (p.check || []).length
+            ? `<div class="alert alert-warning small mt-3">Please check: ${p.check.map(esc).join("; ")}</div>` : "";
+
+        return `
+            <h4 class="fw-bold">${esc(p.title)}</h4>
+            <p class="text-muted">Difficulty: ${esc(p.difficulty)} · Size: ${esc(p.finished_size_cm)} cm · Hook: ${esc(m.hook_mm)} mm</p>
+            ${p.yarn_note ? `<div class="alert alert-light border small">🧶 ${esc(p.yarn_note)}</div>` : ""}
+            ${warnings}
+            <h6 class="fw-bold mt-4">Materials</h6><ul class="list-unstyled">${yarn}${other}</ul>
+            ${abbr ? `<h6 class="fw-bold mt-4">Abbreviations</h6><ul>${abbr}</ul>` : ""}
+            ${parts}
+            ${assembly ? `<h6 class="fw-bold mt-4">Assembly</h6><ol>${assembly}</ol>` : ""}
+            ${p.notes ? `<h6 class="fw-bold mt-4">Notes</h6><p>${esc(p.notes)}</p>` : ""}`;
+    }
+
+    function renderRows(rows) {
+        const items = rows.map((r) =>
+            `<li><strong>Row ${r.row}</strong> (${esc(r.direction)}): ${esc(r.runs)} <span class="text-muted">(${r.stitch_count})</span></li>`).join("");
+        return `
+            <details class="mt-4" open>
+                <summary class="fw-bold">Chart rows (${rows.length})</summary>
+                <p class="text-muted small mt-2">Row 1 is the bottom row of the chart. Odd rows right to left, even rows left to right.
+                   Numbers are stitches, letters are colours.</p>
+                <ul class="list-unstyled small" style="max-height: 400px; overflow-y: auto;">${items}</ul>
+            </details>`;
+    }
+
+    // ---------------------------------------------------------------- 2D
+    async function run2d() {
+        setStatus("Creating the colour chart and writing the pattern… this can take up to a minute.");
+        const data = await request("/api/crochet/2d", {
+            object_id: OBJECT_ID, width: $("width").value, ...choices(),
+        });
+        const legend = data.colors.map((c) =>
+            `<span class="me-3 d-inline-block"><span style="display:inline-block;width:16px;height:16px;border-radius:3px;vertical-align:middle;background:${esc(c.hex)}"></span>
+             <strong>${esc(c.letter)}</strong> <span class="text-muted small">${c.stitches} st</span></span>`).join("");
+        visual.innerHTML = `
+            <img src="${esc(data.chart_url)}" alt="Colour chart" class="img-fluid border rounded mb-3" style="image-rendering: pixelated;">
+            <div class="mb-2">${legend}</div>
+            <p class="text-muted small">${data.width} × ${data.height} stitches
+               ≈ ${data.size_cm[0]} × ${data.size_cm[1]} cm with ${esc(data.yarn.label)} yarn and a ${data.yarn.hook_mm} mm hook
+               (depends on your tension – crochet a small test square first).</p>`;
+        instructions.innerHTML =
+            (data.message ? `<div class="alert alert-info small">${esc(data.message)}</div>` : "")
+            + renderPattern(data.pattern) + renderRows(data.rows);
+        setStatus("Done.");
+    }
+
+    // ---------------------------------------------------------------- 3D
+    async function run3d() {
+        setStatus("Starting the 3D model…");
+        let job = await request("/api/model3d/generate", { object_id: OBJECT_ID });
+        while (job.status === "queued" || job.status === "running") {
+            setStatus(job.message);
+            await sleep(5000);
+            job = await request(`/api/model3d/jobs/${job.job_id}`);
+        }
+        visual.innerHTML = `
+            <model-viewer src="${esc(job.glb_url)}" camera-controls auto-rotate
+                          style="width: 100%; height: 400px; background: #f1f5f9; border-radius: 12px;"></model-viewer>
+            ${job.stl_url ? `<a class="small" href="${esc(job.stl_url)}">Download STL</a>` : ""}`;
+
+        setStatus("Writing the amigurumi pattern… this can take up to a minute.");
+        const data = await request("/api/crochet/3d-instructions", { object_id: OBJECT_ID, ...choices() });
+        instructions.innerHTML = renderPattern(data.pattern);
+        setStatus("Done.");
+    }
+
+    // ---------------------------------------------------------------- generate
+    button.addEventListener("click", async () => {
+        button.disabled = true;
+        visual.innerHTML = "";
+        instructions.innerHTML = "";
+        try {
+            await (style === "2D" ? run2d() : run3d());
+        } catch (err) {
+            setStatus(`Sorry, that did not work: ${err.message}`);
+        } finally {
+            button.disabled = false;
+        }
+    });
+})();
+</script>
 {% endblock %}

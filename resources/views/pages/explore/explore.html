@@ -11,26 +11,20 @@
     </div>
 
     <div class="mb-5">
-        <!-- GET form-->
         <form id="search-form" method="get" action="{{ url_for('app_controller.explore') }}"
               class="input-group mb-4 custom-card p-1" style="border-radius: 50px;">
             <label for="q" class="visually-hidden">Search for an object</label>
-            <input id="q" name="q" type="search" value="{{ q }}"
+            <input id="q" name="q" type="search" value="{{ q }}" minlength="2"
                    class="form-control border-0 bg-transparent ps-4"
                    placeholder="Search for an object, e.g. Armbrust, Uhr, Hodler..." style="box-shadow: none;">
             <button id="search-btn" class="btn btn-pill btn-outline-custom m-1" type="submit">Search</button>
         </form>
     </div>
 
-    {# Example cards shown when nobody has searched yet. Edit these freely. #}
-    {% set examples = [
-        {"id": "", "title": "Teapot", "description": "Example object. Click to see how crochet instructions look."},
-        {"id": "", "title": "Pocket watch", "description": "Example object. Click to see how crochet instructions look."},
-        {"id": "", "title": "Crossbow", "description": "Example object. Click to see how crochet instructions look."}
-    ] %}
-
     {% if error %}
-    <div class="alert alert-warning mb-5">The collection could not be reached. Please try again in a moment.</div>
+    <div class="alert alert-warning mb-5">The collection could not be loaded. Please try again in a moment.</div>
+    {% elif q and q|length < 2 %}
+    <div class="alert alert-info mb-5">Please enter at least 2 characters.</div>
     {% elif q and not objects %}
     <div class="text-center py-5 mb-5">
         <h4 class="fw-bold">No results for "{{ q }}"</h4>
@@ -38,29 +32,45 @@
     </div>
     {% endif %}
 
-    {% if not error and (objects or not q) %}
-    {% set cards = objects if q else examples %}
+    {% if objects %}
     <p class="text-muted mb-4">
-        {% if q %}{{ objects|length }} result(s) for "{{ q }}"{% else %}Examples to get you started{% endif %}
+        {% if q %}{{ total }} result(s) for "{{ q }}"{% else %}Examples to get you started{% endif %}
     </p>
-    <div class="row g-4 mb-5 pb-5">
-        {% for obj in cards %}
+    <div class="row g-4 mb-4">
+        {% for obj in objects %}
         <div class="col-md-4">
-            <div class="custom-card custom-card-hover h-100">
-                {% if obj.image_url %}
-                <img src="{{ obj.image_url }}" alt="{{ obj.title }}" class="card-image-placeholder">
-                {% else %}
-                <div class="card-image-placeholder"></div>
-                {% endif %}
-                <h5 class="fw-bold mb-2">{{ obj.title }}</h5>
-                <p class="text-muted small mb-4">{{ obj.description|truncate(110) }}</p>
-                <a href="{{ url_for('app_controller.explore_sub', id=obj.id, title=obj.title, description=obj.description|truncate(300)) }}"
-                   class="btn btn-outline-custom btn-pill w-100">Crochet this</a>
+            <div class="custom-card custom-card-hover h-100 d-flex flex-column">
+                <div class="card-image-placeholder overflow-hidden">
+                    {# Image is loaded live from SKKG; hidden if the object has none #}
+                    <img src="/api/skkg/image/{{ obj.id }}" alt="{{ obj.title }}" loading="lazy"
+                         class="w-100 h-100" style="object-fit: cover;" onerror="this.remove()">
+                </div>
+                <h5 class="fw-bold mb-2">{{ obj.title or "Untitled" }}</h5>
+                <p class="text-muted small mb-4">
+                    {{ obj.artists or "Unknown artist" }}{% if obj.date %} · {{ obj.date }}{% endif %}
+                </p>
+                <a href="{{ url_for('app_controller.explore_sub', object_id=obj.id) }}"
+                   class="btn btn-outline-custom btn-pill w-100 mt-auto">Crochet this</a>
             </div>
         </div>
         {% endfor %}
     </div>
+
+    {% if q and total > page_size %}
+    {% set last_page = ((total - 1) // page_size) + 1 %}
+    <nav class="d-flex justify-content-between align-items-center mb-5 pb-5">
+        {% if page > 1 %}
+        <a class="btn btn-pill btn-outline-custom" href="{{ url_for('app_controller.explore', q=q, page=page - 1) }}">&larr; Previous</a>
+        {% else %}<span></span>{% endif %}
+        <span class="text-muted small">Page {{ page }} of {{ last_page }}</span>
+        {% if page < last_page %}
+        <a class="btn btn-pill btn-outline-custom" href="{{ url_for('app_controller.explore', q=q, page=page + 1) }}">Next &rarr;</a>
+        {% else %}<span></span>{% endif %}
+    </nav>
     {% endif %}
+    {% endif %}
+
+    <p class="text-muted small mb-5">Images and data: Stiftung für Kunst, Kultur und Geschichte (SKKG), Winterthur.</p>
 
 </div>
 {% endblock %}

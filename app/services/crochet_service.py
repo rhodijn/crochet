@@ -5,22 +5,61 @@ Two kinds, made for every artwork:
   - "tapestry":  2D picture, built on the colour chart from chart2d_service
 
 Requires:  pip install anthropic
-           ANTHROPIC_API_KEY environment variable
+           ANTHROPIC_API_KEY in app/config/settings.py (Settings) or as environment variable
 """
 import json
 import os
 
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
-MAX_TOKENS = 8000
+
+
+def get_api_key():
+    """The Anthropic key from Settings, falling back to the environment variable."""
+    try:
+        from app.config.settings import Settings
+        key = getattr(Settings(), "ANTHROPIC_API_KEY", None)
+    except Exception:
+        key = None
+    return key or os.getenv("ANTHROPIC_API_KEY")
+MAX_TOKENS = 16000   # long amigurumi patterns need room; JSON cut off = invalid
+
+# Standard yarn weights (Craft Yarn Council). Gauge = single crochet per 10 cm,
+# approximate; real gauge depends on the yarn and on how tightly someone crochets.
+YARN_WEIGHTS = {
+    "fine":   {"label": "Fine (sport, CYC 2)",          "hook_mm": 3.0, "sc_per_10cm": 22, "rows_per_10cm": 24, "amigurumi_hook_mm": 2.5},
+    "light":  {"label": "Light (DK, CYC 3)",            "hook_mm": 4.0, "sc_per_10cm": 18, "rows_per_10cm": 20, "amigurumi_hook_mm": 3.0},
+    "medium": {"label": "Medium (worsted/aran, CYC 4)", "hook_mm": 5.0, "sc_per_10cm": 15, "rows_per_10cm": 17, "amigurumi_hook_mm": 3.5},
+    "bulky":  {"label": "Bulky (chunky, CYC 5)",        "hook_mm": 6.5, "sc_per_10cm": 11, "rows_per_10cm": 13, "amigurumi_hook_mm": 5.0},
+}
+DEFAULT_YARN = "light"
+
+
+def finished_size_cm(width_stitches: int, height_rows: int, yarn_weight: str) -> tuple:
+    """Approximate size of a single crochet piece in this yarn weight."""
+    yarn = YARN_WEIGHTS[yarn_weight]
+    return (round(width_stitches / yarn["sc_per_10cm"] * 10),
+            round(height_rows / yarn["rows_per_10cm"] * 10))
+
 
 SYSTEM_PROMPT = """You are an experienced crochet designer. You turn artworks from a
 museum collection into crochet patterns that a hobby crocheter can actually follow.
 
 Rules:
-- Use US crochet terms and explain every abbreviation you use.
+- Use US crochet terminology only, never UK terms (US sc = UK dc).
+- Use only standard US crochet abbreviations: ch, sl st, sc, hdc, dc, tr, inc, dec,
+  sc2tog, st(s), rnd(s), rep, sk, sp, FLO, BLO, pop, MR (magic ring), RS, WS.
+  Do not invent abbreviations. List every abbreviation you use, and only those, in
+  "abbreviations".
 - Write the kind of pattern the request asks for (amigurumi or tapestry).
+- Use the yarn weight and hook size given in the request. Do not switch to another yarn.
+- Use exactly the number of yarn colours the request allows, not more.
 - Every round/row must state its stitch count, and the counts must add up.
-- Keep it achievable: about 2 to 6 parts, at most 6 yarn colors.
+- Keep it achievable: about 2 to 6 parts. Simplify small details (straps, buttons,
+  small accessories) into one or two short steps instead of separate parts.
+- Keep the whole answer compact: combine identical rounds ("Rnd 8-12: sc around (36)").
+- In "yarn_note" write one or two sentences: which yarn weight and hook the finished
+  size is based on, and that a thinner or thicker yarn makes the piece smaller or larger,
+  so the crocheter should check their gauge first.
 
 Answer with JSON only, no other text, in exactly this shape:
 {
@@ -28,6 +67,7 @@ Answer with JSON only, no other text, in exactly this shape:
   "pattern_type": "amigurumi" or "tapestry",
   "difficulty": "beginner" | "intermediate" | "advanced",
   "finished_size_cm": "e.g. 15 x 10 x 8",
+  "yarn_note": "Made with light (DK) yarn and a 4.0 mm hook ...",
   "materials": {
     "yarn": [{"color": "name", "hex": "#rrggbb", "amount_g": 20}],
     "hook_mm": 3.0,
@@ -36,7 +76,7 @@ Answer with JSON only, no other text, in exactly this shape:
   "abbreviations": {"sc": "single crochet"},
   "parts": [
     {"name": "Body", "color": "name",
-     "steps": [{"step": "R1", "instruction": "6 sc in magic ring", "stitch_count": 6}]}
+     "steps": [{"step": "Rnd 1", "instruction": "6 sc in MR", "stitch_count": 6}]}
   ],
   "assembly": ["how to put the parts together"],
   "notes": "short tips"
@@ -50,17 +90,37 @@ AMIGURUMI_TASK = (
 )
 
 TAPESTRY_TASK = (
-    "Write a TAPESTRY CROCHET pattern (a flat picture in single crochet, worked in rows). "
+    "Write a TAPESTRY CROCHET pattern (a flat picture in sc, worked in rows). "
     "The colour chart is already computed and its row-by-row colour runs will be printed "
     "after your text, so do NOT write the picture rows yourself. Use exactly the chart's "
     "colours as the yarn list (keep the letters A, B, C ... and their hex values, give each "
-    "a yarn colour name, estimate grams from the stitch counts). In 'parts' describe only "
-    "the work around the chart: foundation chain, how to read the chart, how to change "
-    "colours and carry yarn, and a simple border. "
+    "a yarn colour name, estimate grams from the stitch counts and the yarn weight). "
+    "In 'parts' describe only the work around the chart: foundation ch, how to read the "
+    "chart, how to change colours and carry yarn, and a simple sc border."
 )
 
 
-def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict = None) -> str:
+def _yarn_text(kind: str, yarn_weight: str, colors: int, chart: dict = None) -> list:
+    yarn = YARN_WEIGHTS[yarn_weight]
+    if kind == "amigurumi":
+        return [
+            f"Yarn chosen by the user: {yarn['label']}. Use a {yarn['amigurumi_hook_mm']} mm hook "
+            "(smaller than the yarn label suggests, so the fabric is tight and the stuffing "
+            "does not show). Mention this in yarn_note.",
+            f"Use at most {colors} yarn colours.",
+        ]
+    width_cm, height_cm = finished_size_cm(chart["width"], chart["height"], yarn_weight)
+    return [
+        f"Yarn chosen by the user: {yarn['label']}, hook {yarn['hook_mm']} mm, "
+        f"gauge about {yarn['sc_per_10cm']} sc and {yarn['rows_per_10cm']} rows = 10 cm.",
+        f"With this gauge the chart area is about {width_cm} x {height_cm} cm. Use this "
+        "(plus the border) for finished_size_cm and explain it in yarn_note.",
+        f"The user chose {len(chart['colors'])} colours; the chart uses exactly these.",
+    ]
+
+
+def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict = None,
+                  yarn_weight: str = DEFAULT_YARN, colors: int = 6) -> str:
     lines = [
         AMIGURUMI_TASK if kind == "amigurumi" else TAPESTRY_TASK,
         "The artwork is from the SKKG collection.",
@@ -69,6 +129,7 @@ def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict
         f"Date: {artwork.get('date') or 'unknown'}",
         f"Gattung (type): {artwork.get('gattung') or 'unknown'}",
         f"Material/technique: {artwork.get('material') or 'unknown'}",
+        *_yarn_text(kind, yarn_weight, colors, chart),
     ]
     if kind == "amigurumi" and model_info:
         lines.append(
@@ -87,17 +148,19 @@ def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict
 
 
 def _parse_json(text: str) -> dict:
-    """Claude is asked for pure JSON; strip code fences just in case."""
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
-    return json.loads(cleaned)
+    """Claude is asked for pure JSON; ignore code fences or text around it."""
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        raise json.JSONDecodeError("No JSON object found", text, 0)
+    return json.loads(text[start:end + 1])
 
 
 def generate_instructions(artwork: dict, image_url: str, kind: str = "amigurumi",
-                          model_info: dict = None, chart: dict = None) -> dict:
+                          model_info: dict = None, chart: dict = None,
+                          yarn_weight: str = DEFAULT_YARN, colors: int = 6) -> dict:
     """
     kind = "amigurumi" (3D) or "tapestry" (2D, needs `chart`).
+    yarn_weight = a key of YARN_WEIGHTS, colors = max. number of yarn colours.
     Returns the crochet pattern as a dict (see SYSTEM_PROMPT for its shape).
     """
     import anthropic
@@ -106,27 +169,49 @@ def generate_instructions(artwork: dict, image_url: str, kind: str = "amigurumi"
         raise ValueError("kind must be 'amigurumi' or 'tapestry'")
     if kind == "tapestry" and not chart:
         raise ValueError("A tapestry pattern needs the colour chart.")
+    if yarn_weight not in YARN_WEIGHTS:
+        raise ValueError(f"Unknown yarn weight: {yarn_weight}")
 
-    client = anthropic.Anthropic()   # reads ANTHROPIC_API_KEY
-    message = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=MAX_TOKENS,
-        system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {"type": "url", "url": image_url}},
-                {"type": "text", "text": _artwork_text(artwork, kind, model_info, chart)},
-            ],
-        }],
-    )
-    text = "".join(block.text for block in message.content if block.type == "text")
-    try:
-        pattern = _parse_json(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Claude did not return valid JSON: {text[:300]}") from exc
+    api_key = get_api_key()
+    if not api_key:
+        raise ValueError("No Anthropic API key configured.")
+    client = anthropic.Anthropic(api_key=api_key)
+    messages = [{
+        "role": "user",
+        "content": [
+            {"type": "image", "source": {"type": "url", "url": image_url}},
+            {"type": "text", "text": _artwork_text(artwork, kind, model_info, chart, yarn_weight, colors)},
+        ],
+    }]
+
+    # Up to two tries: if the answer is cut off or not valid JSON, ask once more
+    # for a shorter, valid answer.
+    for attempt in range(2):
+        message = client.messages.create(
+            model=CLAUDE_MODEL, max_tokens=MAX_TOKENS, system=SYSTEM_PROMPT, messages=messages,
+        )
+        text = "".join(block.text for block in message.content if block.type == "text")
+        cut_off = message.stop_reason == "max_tokens"
+        try:
+            if cut_off:
+                raise json.JSONDecodeError("Answer was cut off (max_tokens)", text, len(text))
+            pattern = _parse_json(text)
+            break
+        except json.JSONDecodeError as exc:
+            if attempt == 1:
+                reason = "the answer was too long and got cut off" if cut_off else "the answer was not valid JSON"
+                raise ValueError(f"Claude could not write the pattern ({reason}). Start: {text[:200]}") from exc
+            messages = messages + [
+                {"role": "assistant", "content": text or "(empty)"},
+                {"role": "user", "content": (
+                    "That answer was " + ("cut off because it was too long" if cut_off else "not valid JSON")
+                    + ". Write the complete pattern again as valid JSON only, in the same shape, "
+                    "and make it shorter: fewer parts, combine identical rounds, simplify details."
+                )},
+            ]
 
     pattern["pattern_type"] = kind
+    pattern["yarn_weight"] = YARN_WEIGHTS[yarn_weight]["label"]
     if kind == "tapestry":
         from app.services.chart2d_service import row_instructions
         pattern["chart_rows"] = row_instructions(chart)
@@ -162,6 +247,8 @@ def to_markdown(pattern: dict) -> str:
     out += [f"**Type:** {pattern.get('pattern_type')}  ",
             f"**Difficulty:** {pattern.get('difficulty')}  ",
             f"**Finished size:** {pattern.get('finished_size_cm')} cm", ""]
+    if pattern.get("yarn_note"):
+        out += [f"> {pattern['yarn_note']}", ""]
 
     materials = pattern.get("materials", {})
     out.append("## Materials")
