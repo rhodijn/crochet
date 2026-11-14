@@ -25,7 +25,7 @@
             </button>
             
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav gap-4">
+                <ul class="navbar-nav gap-4" style="font-weight: bold;">
                     <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.dashboard') }}">Home</a></li>
                     <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.explore') }}">Explore</a></li>
                     <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.about') }}">About</a></li>
@@ -39,16 +39,53 @@
         {% endblock %}
     </main>
 
-    <footer class="py-5 mt-5 border-top">
-        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center text-muted gap-3">
-            <div class="fw-bold text-dark">{{config.APP_NAME}}</div>
-            <div class="small">{{t("organisation.copyright.text")}}</div>
-            <div class="small d-flex gap-3">
-                <a href="#" class="text-muted text-decoration-none">Instagram</a>
-                <a href="#" class="text-muted text-decoration-none">GitHub</a>
+    <!-- Footer Section -->
+<footer class="glass-nav mt-5 py-5 border-top">
+    <div class="container">
+        <div class="row g-4 justify-content-between">
+            
+            <!-- Brand Column -->
+            <div class="col-lg-4">
+                <a class="navbar-brand fw-bold fs-4 text-dark text-decoration-none" href="/">{{config.APP_NAME}}</a>
+                <p class="text-muted small mt-2 mb-3">
+                    Transforming digital collections and open data into unique, modern crochet projects.
+                </p>
+                <p class="text-muted small mb-0">
+                    &copy; 2026 Häkelthon. All rights reserved.
+                </p>
             </div>
+
+            <!-- Navigation Links -->
+            <div class="col-6 col-lg-2">
+                <h6 class="fw-bold text-dark mb-3">Navigation</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="/" class="text-muted text-decoration-none hover-dark">Home</a></li>
+                    <li class="mb-2"><a href="/explore" class="text-muted text-decoration-none hover-dark">Explore</a></li>
+                    <li class="mb-2"><a href="/about" class="text-muted text-decoration-none hover-dark">About</a></li>
+                </ul>
+            </div>
+
+            <!-- Legal / Info -->
+            <div class="col-6 col-lg-2">
+                <h6 class="fw-bold text-dark mb-3">Project</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><span class="text-muted">Open Data</span></li>
+                    <li class="mb-2"><span class="text-muted">Privacy Policy</span></li>
+                    <li class="mb-2"><span class="text-muted">Terms of Use</span></li>
+                </ul>
+            </div>
+
+            <!-- Tagline / Badge -->
+            <div class="col-lg-3 text-lg-end">
+                <h6 class="fw-bold text-dark mb-3">Crafted with Precision</h6>
+                <p class="text-muted small">
+                    Inspired by open data. Made by creativity.
+                </p>
+            </div>
+
         </div>
-    </footer>
+    </div>
+</footer>
 
     <script type="module" src="{{url_for('static', filename='javascripts/main.js')}}"></script>
     {% block scripts %}{% endblock %}
