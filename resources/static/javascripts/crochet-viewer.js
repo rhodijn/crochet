@@ -13,6 +13,7 @@
  *       mode: 'yarn',            // 'yarn' | 'graph'
  *       thickness: 0.27,         // yarn radius
  *       iterations: 400,         // relaxation steps
+ *       stuffing: 1,             // 1 = free/puffy (default), lower = pressed flatter (target thin/long extent ratio)
  *       background: null,        // CSS colour, or null for transparent (a BACKGROUND: line in the pattern wins)
  *       onStatus: s => {},       // {rows, stitches, links, iteration, iterations, done, warnings}
  *       onError:  m => {},       // message string, or null when the pattern is fine
@@ -246,8 +247,26 @@ function layout(G,P){
   nodes.forEach(nn=>{if(nn.hidden){const e=edges.find(e=>e[0]===nn.id||e[1]===nn.id);if(e){const o=e[0]===nn.id?e[1]:e[0];for(let k=0;k<3;k++)X[3*nn.id+k]=X[3*o+k]}}});
   const adj=new Set();edges.forEach(e=>{adj.add(e[0]*n+e[1]);adj.add(e[1]*n+e[0])});
   const S=1<<14,head=new Int32Array(S),nxt=new Int32Array(n),R=.8;
-  return function relax(iters){
+  const opts={stuff:1};
+  function press(target){ // squash along the thinnest principal axis until thin/long extent <= target
+    const live=[];for(let i=0;i<n;i++)if(!nodes[i].hidden)live.push(i);const m=live.length;if(m<4)return;
+    let cx=0,cy=0,cz=0;for(const i of live){cx+=X[3*i];cy+=X[3*i+1];cz+=X[3*i+2]}cx/=m;cy/=m;cz/=m;
+    let a=0,b=0,c=0,d=0,e=0,f=0;for(const i of live){const x=X[3*i]-cx,y=X[3*i+1]-cy,z=X[3*i+2]-cz;a+=x*x;b+=x*y;c+=x*z;d+=y*y;e+=y*z;f+=z*z}
+    const mul=v=>[a*v[0]+b*v[1]+c*v[2],b*v[0]+d*v[1]+e*v[2],c*v[0]+e*v[1]+f*v[2]];
+    const tr=a+d+f,dot=(p,q)=>p[0]*q[0]+p[1]*q[1]+p[2]*q[2];
+    let u=[.3,.5,.8],v=[.577,.577,.577];
+    for(let r=0;r<25;r++){let w=mul(u);let L=Math.hypot(...w)||1;u=[w[0]/L,w[1]/L,w[2]/L];
+      const q=mul(v);w=[tr*v[0]-q[0],tr*v[1]-q[1],tr*v[2]-q[2]];L=Math.hypot(...w)||1;v=[w[0]/L,w[1]/L,w[2]/L]}
+    const lmax=dot(u,mul(u)),lmin=dot(v,mul(v));
+    const ratio=Math.sqrt(Math.max(lmin,0)/Math.max(lmax,1e-9));
+    if(ratio<=target)return;
+    const k=Math.min(.06,1-target/ratio);
+    for(const i of live){const p=(X[3*i]-cx)*v[0]+(X[3*i+1]-cy)*v[1]+(X[3*i+2]-cz)*v[2];
+      X[3*i]-=k*p*v[0];X[3*i+1]-=k*p*v[1];X[3*i+2]-=k*p*v[2]}
+  }
+  const relax=function(iters){
     for(let it=0;it<iters;it++){
+      if(opts.stuff<1)press(opts.stuff);
       for(const[a,b,l]of edges){const i=3*a,j=3*b,dx=X[j]-X[i],dy=X[j+1]-X[i+1],dz=X[j+2]-X[i+2],d=Math.hypot(dx,dy,dz)||1e-6,f=.45*(d-l)/d;
         X[i]+=dx*f;X[i+1]+=dy*f;X[i+2]+=dz*f;X[j]-=dx*f;X[j+1]-=dy*f;X[j+2]-=dz*f}
       head.fill(-1);
@@ -259,7 +278,8 @@ function layout(G,P){
           const dx=X[3*j]-X[3*i],dy=X[3*j+1]-X[3*i+1],dz=X[3*j+2]-X[3*i+2],d=Math.hypot(dx,dy,dz);
           if(d<R&&d>1e-6){const f=.25*(R-d)/d;X[3*i]-=dx*f;X[3*i+1]-=dy*f;X[3*i+2]-=dz*f;X[3*j]+=dx*f;X[3*j+1]+=dy*f;X[3*j+2]+=dz*f}}}
     }
-    return X}
+    return X};
+  relax.opts=opts;return relax
 }
 
 
@@ -271,7 +291,7 @@ function mount(el,opts){
   if(!T)throw new Error('CrochetViewer: three.js not found. Load three.js (r128) first, or pass {THREE}.');
   const OC=opts.OrbitControls||T.OrbitControls;
   if(!OC)throw new Error('CrochetViewer: OrbitControls not found. Load examples/js/controls/OrbitControls.js, or pass {OrbitControls}.');
-  const o=Object.assign({mode:'yarn',thickness:.27,iterations:400,background:null,defaultColor:DEF_YARN,onStatus:null,onHover:null,onError:null},opts);
+  const o=Object.assign({mode:'yarn',thickness:.27,iterations:400,stuffing:1,background:null,defaultColor:DEF_YARN,onStatus:null,onHover:null,onError:null},opts);
   const R=new T.WebGLRenderer({antialias:true,alpha:true}),S=new T.Scene(),cam=new T.PerspectiveCamera(45,1,.1,3000),
     ctl=new OC(cam,R.domElement),tmp=new T.Object3D(),ray=new T.Raycaster(),mp=new T.Vector2(),
     Yax=new T.Vector3(0,1,0),va=new T.Vector3(),vb=new T.Vector3(),vd=new T.Vector3(),vs=new T.Vector3();
@@ -318,6 +338,10 @@ function mount(el,opts){
       lines.geometry.attributes.position.needsUpdate=true;lines.geometry.setDrawRange(0,2*c)}
   }
   function clear(){if(!mesh)return;S.remove(mesh,lines,yarn,joints);mesh.dispose();mesh.geometry.dispose();lines.geometry.dispose();lines.material.dispose();yarn.dispose();yarn.geometry.dispose();joints.dispose();joints.geometry.dispose();mesh=null}
+  let cur=null;
+  function run(tot,me){cancelAnimationFrame(raf);let left=tot;status(left,tot);
+    (function f(){if(me!==job||dead)return;const s=Math.min(8,left);X=cur(s);left-=s;draw();status(left,tot);
+      if(left>0)raf=requestAnimationFrame(f);else fit()})()}
   /** Parse + build + start relaxing. Returns null on success, or an error message string. */
   function setPattern(text){
     const me=++job;let p,g;
@@ -342,10 +366,9 @@ function mount(el,opts){
     joints=new T.InstancedMesh(new T.SphereGeometry(1,10,8),yMat,vis.length);
     vis.forEach((n,j)=>joints.setColorAt(j,colr(n.col)));
     [mesh,lines,yarn,joints].forEach(m=>m.frustumCulled=false);S.add(mesh,lines,yarn,joints);
+    cur=relax;relax.opts.stuff=Math.min(1,Math.max(.02,+o.stuffing||1));
     X=relax(0);draw();fit();
-    const tot=Math.max(0,o.iterations|0);let left=tot;status(left,tot);
-    (function f(){if(me!==job||dead)return;const s=Math.min(8,left);X=relax(s);left-=s;draw();status(left,tot);
-      if(left>0)raf=requestAnimationFrame(f);else fit()})();
+    run(Math.max(0,o.iterations|0),me);
     return null}
   R.domElement.addEventListener('pointermove',ev=>{
     if(!o.onHover||!mesh)return;const r=R.domElement.getBoundingClientRect();
@@ -359,6 +382,9 @@ function mount(el,opts){
     setMode(m){o.mode=m==='graph'?'graph':'yarn';draw()},
     /** yarn radius, roughly 0.1 - 0.4 */
     setThickness(v){o.thickness=+v;draw()},
+    /** 1 = free (puffy, the default). Lower values press the piece flatter: the target ratio of its
+     *  thinnest to longest extent (e.g. 0.4 for a mask or pillow). Re-relaxes the current pattern. */
+    setStuffing(v){o.stuffing=Math.min(1,Math.max(.02,+v||1));if(cur){cur.opts.stuff=o.stuffing;run(Math.max(150,o.iterations|0),job)}},
     /** relaxation iterations used by the next setPattern() call */
     setIterations(n){o.iterations=n|0},
     /** show only the first n stitches (in working order); omit/Infinity for all */

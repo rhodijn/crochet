@@ -26,6 +26,7 @@ textarea{flex:1;resize:none;border:0;border-radius:0;padding:10px;font:12px/1.5 
   <select id="vw"><option value="yarn">Yarn view</option><option value="graph">Stitch graph</option></select>
   <label>yarn thickness <input id="yr" type="range" min=".1" max=".4" step=".01" value=".27"></label>
   <label>stitches shown <input id="sl" type="range" min="1" max="1" value="1"></label>
+  <label>stuffing <input id="stf" type="range" min="0" max="1" step="0.1" value="1"></label>
 </header>
 <main>
   <div id="ed"><textarea id="src" spellcheck="false" placeholder="Paste a crochetPARADE pattern here, then press Calculate (or Shift+Enter)"></textarea><div id="st"></div></div>
@@ -45,6 +46,7 @@ const viewer = CrochetViewer.mount($('cv'), {
   mode: $('vw').value,
   thickness: +$('yr').value,
   iterations: +$('it').value,
+  stuffing: +$('stf').value,
   onError: m => { error = m; if (m) show(); },
   onHover: h => { $('tip').textContent = h ? `row ${h.row}, stitch ${h.stitch} · #${h.id} · ${h.type}` : 'hover a stitch'; },
   onStatus: s => {
@@ -78,5 +80,6 @@ $('src').addEventListener('keydown', e => { if (e.key === 'Enter' && e.shiftKey)
 $('vw').onchange = () => { viewer.setMode($('vw').value); show(); };
 $('yr').oninput = () => viewer.setThickness(+$('yr').value);
 $('sl').oninput = () => viewer.setVisibleCount(+$('sl').value >= count ? null : +$('sl').value);
+$('stf').oninput = () => viewer.setStuffing(+$('stf').value);
 </script>
 </body></html>
