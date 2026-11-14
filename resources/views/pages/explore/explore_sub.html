@@ -40,6 +40,20 @@
 
     </div>
 
+    <!-- 3D preview: hidden until the user chooses "3D crochet" (see main.js) -->
+    <div id="viewer-section" class="row mb-5 d-none">
+        <div class="col-12">
+            <div class="custom-card p-3 p-md-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h5 class="fw-bold mb-0">3D preview</h5>
+                    <small class="text-muted">Drag to rotate, scroll to zoom</small>
+                </div>
+                <div id="viewer" style="position: relative; height: min(520px, 70vh); border-radius: 16px; background: #f4efe7; overflow: hidden;"></div>
+                <p id="viewer-status" class="small text-muted mt-3 mb-0"></p>
+            </div>
+        </div>
+    </div>
+
     <!-- The Instructions -->
     <div class="row mb-5 pb-5">
         <div class="col-12">
@@ -53,4 +67,11 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Only this page needs the 3D libraries. They are normal scripts, so they run before main.js. -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="{{ url_for('static', filename='javascripts/crochet-viewer.js') }}"></script>
 {% endblock %}
