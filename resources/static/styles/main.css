@@ -28,7 +28,7 @@
     --text-dark: #0f172a;
     --card-bg: rgba(255, 255, 255, 0.8);
     /* ZHAW Sakura to ZHAW Yuzu gradient */
-    --gradient-accent: linear-gradient(135deg, #ffb0d4 0%, #ffdc0c 100%);
+    --gradient-accent: linear-gradient(135deg, #ffb0d4 0%, #60bbe2 100%);
 }
 
 body {
