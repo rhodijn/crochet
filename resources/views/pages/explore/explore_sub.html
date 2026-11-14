@@ -11,7 +11,8 @@
             <div class="custom-card">
                 <div class="card-image-placeholder overflow-hidden" style="height: 300px;">
                     <img src="/api/skkg/image/{{ obj.id }}?size=full" alt="{{ obj.title }}"
-                         class="w-100 h-100" style="object-fit: contain;" onerror="this.remove()">
+                         class="w-100 h-100" style="object-fit: contain;"
+                         onerror="if (!this.dataset.fallback) { this.dataset.fallback = '1'; this.src = '/api/skkg/image/{{ obj.id }}'; } else { this.remove(); }">
                 </div>
                 <h4 class="fw-bold mb-3">{{ obj.title or "Untitled" }}</h4>
                 <dl class="small mb-0">
@@ -236,7 +237,40 @@
         setStatus("Writing the amigurumi pattern… this can take up to a minute.");
         const data = await request("/api/crochet/3d-instructions", { object_id: OBJECT_ID, ...choices() });
         instructions.innerHTML = renderPattern(data.pattern);
+        showPreview(data.pattern.preview);
         setStatus("Done.");
+    }
+
+    // ---------------------------------------------------------------- crochet preview (crochet-viewer.js)
+    // Uses the viewer main.js created (window.crochetPreview) if there is one,
+    // otherwise mounts a new one into #viewer.
+    function showPreview(code) {
+        const section = $("viewer-section"), box = $("viewer"), note = $("viewer-status");
+        section.classList.remove("d-none");
+        if (!code) {
+            note.textContent = "No preview for this pattern. (Patterns saved before the preview existed have none: "
+                + "delete its *_3d.json file in app/data/patterns and generate again.)";
+            return;
+        }
+        if (!window.CrochetViewer || !window.THREE) {
+            note.textContent = "The preview viewer could not be loaded.";
+            return;
+        }
+        try {
+            if (!window.crochetPreview) {
+                box.innerHTML = "";
+                window.crochetPreview = CrochetViewer.mount(box, {
+                    mode: "yarn", iterations: 400,
+                    onStatus: (s) => { note.textContent = `${s.rows} rounds · ${s.stitches} stitches${s.done ? "" : " · shaping…"}`; },
+                    onError: (m) => { if (m) note.textContent = `Preview not possible: ${m}`; },
+                });
+            }
+            const error = window.crochetPreview.setPattern(code);
+            if (error) note.textContent = `Preview not possible: ${error}`;
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (err) {
+            note.textContent = `Preview not possible: ${err.message}`;
+        }
     }
 
     // ---------------------------------------------------------------- generate

@@ -9,6 +9,7 @@ Requires:  pip install anthropic
 """
 import json
 import os
+import re
 
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
 
@@ -76,7 +77,8 @@ Answer with JSON only, no other text, in exactly this shape:
   "abbreviations": {"sc": "single crochet"},
   "parts": [
     {"name": "Body", "color": "name",
-     "steps": [{"step": "Rnd 1", "instruction": "6 sc in MR", "stitch_count": 6}]}
+     "steps": [{"step": "Rnd 1", "instruction": "6 sc in MR", "stitch_count": 6}],
+     "preview": "only for amigurumi parts in rounds, see the task"}
   ],
   "assembly": ["how to put the parts together"],
   "notes": "short tips"
@@ -86,8 +88,40 @@ Answer with JSON only, no other text, in exactly this shape:
 AMIGURUMI_TASK = (
     "Write an AMIGURUMI pattern (a 3D crocheted figure, worked in rounds) of the "
     "main subject of this artwork. If the artwork is flat (a painting or drawing), "
-    "turn its main figure or object into a 3D figure."
+    "turn its main figure or object into a 3D figure. "
+    "Shape every part like the real thing instead of plain tubes and balls: change the "
+    "stitch count in the middle rounds (inc to widen, dec to narrow) so parts taper, bulge "
+    "or flatten where the object does, and follow the proportions of the 3D model. "
+    "A part should only stay at the same count for many rounds if the object is really "
+    "straight there."
 )
+
+# Notation for the 3D crochet preview (read by static/javascripts/crochet-viewer.js).
+PREVIEW_RULES = """
+In EVERY part worked in rounds, also add a "preview" field: that part's rounds in
+CrochetPARADE notation (read by static/javascripts/crochet-viewer.js), one line per
+round, worked in a continuous spiral. It must match the part's rounds exactly.
+Start it with a COLOR line for the part's yarn. For flat parts worked in rows from a
+chain, set "preview" to "".
+  ring            magic ring (always the first line)
+  6 sc            6 sc (on line 2: 6 sc into the ring)
+  6 inc           6 increases (each inc = 2 sc in one stitch)
+  6 dec           6 decreases (each dec = sc2tog)
+  6*(sc,inc)      repeat the group 6 times; 6*(2 sc,inc) = 2 sc then inc, 6 times
+  COLOR: red      colour for the following rounds, as a plain colour NAME (red, navy,
+                  beige, ...). Never use "#" – it starts a comment in CrochetPARADE.
+Only use: ring, sc, inc, dec, N*(...) repeats, COLOR lines. No text, no stitch counts,
+no round labels, no comments. "preview" must be ONE string with the rounds separated
+by line breaks (\\n), not a list. Example:
+COLOR: red
+ring
+6 sc
+6 inc
+6*(sc,inc)
+18 sc
+18 sc
+6*(sc,dec)
+6 dec"""
 
 TAPESTRY_TASK = (
     "Write a TAPESTRY CROCHET pattern (a flat picture in sc, worked in rows). "
@@ -122,7 +156,7 @@ def _yarn_text(kind: str, yarn_weight: str, colors: int, chart: dict = None) -> 
 def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict = None,
                   yarn_weight: str = DEFAULT_YARN, colors: int = 6) -> str:
     lines = [
-        AMIGURUMI_TASK if kind == "amigurumi" else TAPESTRY_TASK,
+        AMIGURUMI_TASK + PREVIEW_RULES if kind == "amigurumi" else TAPESTRY_TASK,
         "The artwork is from the SKKG collection.",
         f"Title: {artwork.get('title') or 'unknown'}",
         f"Artist: {artwork.get('artists') or 'unknown'}",
@@ -145,6 +179,105 @@ def _artwork_text(artwork: dict, kind: str, model_info: dict = None, chart: dict
             f"Colours: {colours}."
         )
     return "\n".join(lines)
+
+
+# CSS colour names (CrochetPARADE uses names because "#" starts a comment).
+_COLOR_NAMES = {
+    "black": (0, 0, 0), "dimgray": (105, 105, 105), "gray": (128, 128, 128), "darkgray": (169, 169, 169),
+    "silver": (192, 192, 192), "lightgray": (211, 211, 211), "white": (255, 255, 255), "ivory": (255, 255, 240),
+    "beige": (245, 245, 220), "wheat": (245, 222, 179), "tan": (210, 180, 140), "burlywood": (222, 184, 135),
+    "peru": (205, 133, 63), "chocolate": (210, 105, 30), "sienna": (160, 82, 45), "saddlebrown": (139, 69, 19),
+    "brown": (165, 42, 42), "maroon": (128, 0, 0), "darkred": (139, 0, 0), "firebrick": (178, 34, 34),
+    "red": (255, 0, 0), "crimson": (220, 20, 60), "indianred": (205, 92, 92), "salmon": (250, 128, 114),
+    "coral": (255, 127, 80), "tomato": (255, 99, 71), "orangered": (255, 69, 0), "darkorange": (255, 140, 0),
+    "orange": (255, 165, 0), "goldenrod": (218, 165, 32), "gold": (255, 215, 0), "khaki": (240, 230, 140),
+    "yellow": (255, 255, 0), "olive": (128, 128, 0), "olivedrab": (107, 142, 35), "yellowgreen": (154, 205, 50),
+    "darkolivegreen": (85, 107, 47), "green": (0, 128, 0), "darkgreen": (0, 100, 0), "forestgreen": (34, 139, 34),
+    "seagreen": (46, 139, 87), "mediumseagreen": (60, 179, 113), "lightgreen": (144, 238, 144), "teal": (0, 128, 128),
+    "darkcyan": (0, 139, 139), "cadetblue": (95, 158, 160), "turquoise": (64, 224, 208), "lightblue": (173, 216, 230),
+    "skyblue": (135, 206, 235), "steelblue": (70, 130, 180), "cornflowerblue": (100, 149, 237), "royalblue": (65, 105, 225),
+    "blue": (0, 0, 255), "mediumblue": (0, 0, 205), "darkblue": (0, 0, 139), "navy": (0, 0, 128),
+    "midnightblue": (25, 25, 112), "slategray": (112, 128, 144), "darkslategray": (47, 79, 79), "lavender": (230, 230, 250),
+    "thistle": (216, 191, 216), "plum": (221, 160, 221), "orchid": (218, 112, 214), "purple": (128, 0, 128),
+    "indigo": (75, 0, 130), "pink": (255, 192, 203), "hotpink": (255, 105, 180), "palevioletred": (219, 112, 147),
+}
+
+
+def _nearest_color_name(r: int, g: int, b: int) -> str:
+    return min(_COLOR_NAMES, key=lambda n: sum((x - y) ** 2 for x, y in zip(_COLOR_NAMES[n], (r, g, b))))
+
+
+_PREVIEW_WORD = re.compile(r"^(ring|sc|inc|dec|ch|sc2tog|sc\d+inc)$")
+
+
+def normalize_preview(preview):
+    """
+    Clean Claude's preview into the exact notation crochet-viewer.js reads,
+    or return None if it cannot be used. Fixes common variations: a list instead
+    of one text, "Rnd 3:" labels, "(18)" stitch counts, "x6" repeats, "MR", capitals.
+    """
+    if not preview:
+        return None
+    lines = preview if isinstance(preview, list) else str(preview).replace("\\n", "\n").splitlines()
+    out = []
+    for raw in lines:
+        line = str(raw).strip()
+        color = re.match(r"(?i)^colou?r\s*:\s*(.+?)\s*$", line)
+        if color:
+            value = color.group(1).lower().replace(" ", "")
+            hexm = re.fullmatch(r"#?([0-9a-f]{6})", value)
+            rgbm = re.fullmatch(r"rgb\((\d{1,3}),(\d{1,3}),(\d{1,3})\)", value)
+            if value in _COLOR_NAMES:
+                out.append(f"COLOR: {value}")
+            elif hexm:
+                h = hexm.group(1)
+                out.append(f"COLOR: {_nearest_color_name(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))}")
+            elif rgbm:
+                out.append(f"COLOR: {_nearest_color_name(*(int(x) for x in rgbm.groups()))}")
+            continue                                  # unknown colour: leave it out
+        line = line.split("#")[0]                                            # comments
+        line = re.sub(r"(?i)^\s*(rnds?|rounds?|rows?|r)\s*[\d\-–]+\s*[:.)\-]\s*", "", line)  # "Rnd 3:"
+        line = re.sub(r"[\(\[]\s*\d+\s*(sts?|stitches)?\s*[\)\]]\s*$", "", line)          # "(18)"
+        line = line.lower()
+        line = re.sub(r"\b(magic ring|mr)\b", "ring", line)
+        line = re.sub(r"^(\d+)\s*sc\s+(in|into)\s+(the\s+)?ring$", r"sc\1inc", line.strip())  # "6 sc in ring"
+        line = re.sub(r"\b(inc|dec|sc)\s*x\s*(\d+)\b", r"\2\1", line)                     # "inc x6"
+        line = re.sub(r"(\([^()]*\))\s*[x×]\s*(\d+)", r"\1*\2", line)                       # "(..) x6"
+        line = re.sub(r"\s+", " ", line).strip(" ,")
+        if line:
+            out.append(line)
+
+    # CrochetPARADE style, like the team's sample: "6 sc", "6 inc", "6*(sc,inc)"
+    styled = []
+    for line in out:
+        if not line.startswith("COLOR:"):
+            line = re.sub(r"^sc(\d+)inc$", r"\1 sc", line)                 # 6 sc into the ring
+            line = re.sub(r"(\([^()]*\))\s*\*\s*(\d+)", r"\2*\1", line)   # (..)*6 -> 6*(..)
+            line = re.sub(r"\b(\d+)\s*(sc|inc|dec)\b", r"\1 \2", line)    # 6inc -> 6 inc
+            line = re.sub(r"\s*,\s*", ",", line)
+        styled.append(line)
+    out = styled
+
+    rounds = [l for l in out if not l.startswith("COLOR:")]
+    if len(rounds) < 2:
+        return None
+    for line in rounds:
+        if re.search(r"[^a-z0-9(),*\s]", line):
+            return None
+        if not all(_PREVIEW_WORD.match(w) for w in re.findall(r"[a-z_]\w*", line)):
+            return None
+    return "\n".join(out)
+
+
+def apply_previews(pattern: dict) -> dict:
+    """Clean the preview of every part; pattern["preview"] = the first usable one."""
+    first = None
+    for part in pattern.get("parts", []):
+        part["preview"] = normalize_preview(part.get("preview"))
+        first = first or part["preview"]
+    # older patterns had one preview for the whole pattern
+    pattern["preview"] = first or normalize_preview(pattern.get("preview"))
+    return pattern
 
 
 def _parse_json(text: str) -> dict:
@@ -211,6 +344,12 @@ def generate_instructions(artwork: dict, image_url: str, kind: str = "amigurumi"
             ]
 
     pattern["pattern_type"] = kind
+    if kind == "amigurumi":
+        apply_previews(pattern)
+    else:
+        pattern.pop("preview", None)
+        for part in pattern.get("parts", []):
+            part.pop("preview", None)
     pattern["yarn_weight"] = YARN_WEIGHTS[yarn_weight]["label"]
     if kind == "tapestry":
         from app.services.chart2d_service import row_instructions

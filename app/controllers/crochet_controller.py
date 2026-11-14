@@ -20,6 +20,7 @@ from app.services import skkg_db
 from app.services.chart2d_service import make_chart, row_instructions, save_chart_png
 from app.services.crochet_service import (
     DEFAULT_YARN, YARN_WEIGHTS, finished_size_cm, generate_instructions, get_api_key,
+    apply_previews,
 )
 from app.services.model3d_service import describe_model, model_path
 from app.services.skkg_service import get_image_urls
@@ -161,4 +162,6 @@ def crochet_3d():
         logger.exception("Amigurumi instructions failed for %s", artwork["id"])
         return error("The instructions could not be generated. Please try again.", 502)
 
+    # Also clean previews of patterns saved before the cleanup existed.
+    apply_previews(pattern)
     return jsonify({"success": True, "pattern": pattern})

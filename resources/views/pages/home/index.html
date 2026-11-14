@@ -35,19 +35,28 @@
         <div class="row g-4 mb-5 pb-5">
             <div class="col-md-4">
                 <div class="custom-card h-100">
-                    <div class="card-image-placeholder"></div>
+                    <div class="card-image-placeholder overflow-hidden">
+                        <img src="{{ url_for('static', filename='images/discover.png') }}" alt="Discover"
+                            class="w-100 h-100" style="object-fit: cover;">
+                    </div>                    
                     <h5 class="fw-bold">1. Discover</h5>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="custom-card h-100">
-                    <div class="card-image-placeholder"></div>
+                    <div class="card-image-placeholder overflow-hidden">
+                        <img src="{{ url_for('static', filename='images/customize.png') }}" alt="Customize"
+                            class="w-100 h-100" style="object-fit: cover;">
+                    </div>
                     <h5 class="fw-bold">2. Customize</h5>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="custom-card h-100">
-                    <div class="card-image-placeholder"></div>
+                    <div class="card-image-placeholder overflow-hidden">
+                        <img src="{{ url_for('static', filename='images/create.png') }}" alt="Create"
+                            class="w-100 h-100" style="object-fit: cover;">
+                    </div>
                     <h5 class="fw-bold">3. Create</h5>
                 </div>
             </div>
