@@ -5,38 +5,90 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{config.APP_NAME}}</title>
-    <link rel="stylesheet" href="../static/styles/bootstrap.css">
-    <link rel="icon" href="{{url_for('static', filename='favicon.ico')}}" sizes="any">
+    
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/bootstrap.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='styles/main.css')}}">
+    <link rel="icon" href="{{url_for('static', filename='favicon.ico')}}" sizes="any">
 </head>
 
 <body>
-    <header>
+    
+    <nav class="navbar navbar-expand-lg sticky-top glass-nav py-3">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <img title="ZHAW" src="{{url_for('static', filename='images/zhaw_rgb_logo_weiss_negativ.png')}}"
-                        width="100" />
-                    <a id="app-title" href="/" class="h1">{{config.APP_NAME}}</a>
-                </div>
+            <a class="navbar-brand d-flex align-items-center gap-3 fw-bold" href="/">
+                <img title="ZHAW" src="{{url_for('static', filename='images/zhaw_logo.png')}}" width="50" alt="ZHAW Logo" />
+                {{config.APP_NAME}}
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav gap-4" style="font-weight: bold;">
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.dashboard') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.explore') }}">Explore</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="{{ url_for('app_controller.about') }}">About</a></li>
+                </ul>
             </div>
         </div>
-    </header>
+    </nav>
 
-    {% block content %}
-    {% endblock %}
+    <main class="min-vh-100">
+        {% block content %}
+        {% endblock %}
+    </main>
 
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-12 col-lg-6 text-start">
-                    <div>{{t("organisation.copyright.text")}}</div>
-                </div>
+    <!-- Footer Section -->
+<footer class="glass-nav mt-5 py-5 border-top">
+    <div class="container">
+        <div class="row g-4 justify-content-between">
+            
+            <!-- Brand Column -->
+            <div class="col-lg-4">
+                <a class="navbar-brand fw-bold fs-4 text-dark text-decoration-none" href="/">{{config.APP_NAME}}</a>
+                <p class="text-muted small mt-2 mb-3">
+                    Transforming digital collections and open data into unique, modern crochet projects.
+                </p>
+                <p class="text-muted small mb-0">
+                    &copy; 2026 Häkelthon. All rights reserved.
+                </p>
             </div>
+
+            <!-- Navigation Links -->
+            <div class="col-6 col-lg-2">
+                <h6 class="fw-bold text-dark mb-3">Navigation</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="/" class="text-muted text-decoration-none hover-dark">Home</a></li>
+                    <li class="mb-2"><a href="/explore" class="text-muted text-decoration-none hover-dark">Explore</a></li>
+                    <li class="mb-2"><a href="/about" class="text-muted text-decoration-none hover-dark">About</a></li>
+                </ul>
+            </div>
+
+            <!-- Legal / Info -->
+            <div class="col-6 col-lg-2">
+                <h6 class="fw-bold text-dark mb-3">Project</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><span class="text-muted">Open Data</span></li>
+                    <li class="mb-2"><span class="text-muted">Privacy Policy</span></li>
+                    <li class="mb-2"><span class="text-muted">Terms of Use</span></li>
+                </ul>
+            </div>
+
+            <!-- Tagline / Badge -->
+            <div class="col-lg-3 text-lg-end">
+                <h6 class="fw-bold text-dark mb-3">Crafted with Precision</h6>
+                <p class="text-muted small">
+                    Inspired by open data. Made by creativity.
+                </p>
+            </div>
+
         </div>
-    </footer>
+    </div>
+</footer>
+
     <script type="module" src="{{url_for('static', filename='javascripts/main.js')}}"></script>
     {% block scripts %}{% endblock %}
+    
 </body>
-
 </html>

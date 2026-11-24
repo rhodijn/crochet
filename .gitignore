@@ -31,3 +31,10 @@ app/testing/output
 
 # Annoying MacOS
 .DS_Store
+.env
+app/data/image_cache.db
+# Testing files
+app/testing/input/
+app/testing/output
+.DS_Store
+.vscode/
